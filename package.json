@@ -1,0 +1,52 @@
+{
+    "name": "movebridge",
+    "version": "0.0.1",
+    "private": true,
+    "description": "MoveBridge SDK - ethers.js for Movement Network",
+    "author": "MoveBridge Team",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/movebridge/movebridge-sdk"
+    },
+    "workspaces": [
+        "packages/*"
+    ],
+    "scripts": {
+        "build": "pnpm -r build",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
+        "test:properties": "vitest run --testNamePattern='Property'",
+        "lint": "eslint packages --ext .ts,.tsx",
+        "lint:fix": "eslint packages --ext .ts,.tsx --fix",
+        "format": "prettier --write \"packages/**/*.{ts,tsx,json}\"",
+        "clean": "pnpm -r clean",
+        "typecheck": "pnpm -r typecheck"
+    },
+    "devDependencies": {
+        "@testing-library/jest-dom": "^6.1.5",
+        "@testing-library/react": "^14.1.0",
+        "@types/node": "^20.10.0",
+        "@typescript-eslint/eslint-plugin": "^6.13.0",
+        "@typescript-eslint/parser": "^6.13.0",
+        "@vitejs/plugin-react": "^4.2.1",
+        "@vitest/coverage-v8": "^1.0.0",
+        "eslint": "^8.55.0",
+        "eslint-config-prettier": "^9.1.0",
+        "eslint-plugin-react": "^7.33.2",
+        "eslint-plugin-react-hooks": "^4.6.0",
+        "fast-check": "^3.14.0",
+        "jsdom": "^23.0.1",
+        "prettier": "^3.1.0",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "typescript": "^5.3.2",
+        "vitest": "^1.0.0"
+    },
+    "engines": {
+        "node": ">=18.0.0",
+        "pnpm": ">=8.0.0"
+    },
+    "packageManager": "pnpm@8.12.0"
+}

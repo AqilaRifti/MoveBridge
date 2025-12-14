@@ -1,0 +1,51 @@
+{
+    "name": "@movebridge/codegen",
+    "version": "0.0.1",
+    "description": "Code generation tool for type-safe Movement contract interactions",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "bin": {
+        "movebridge-gen": "./dist/cli.js"
+    },
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsup src/index.ts src/cli.ts --format cjs,esm --dts --clean",
+        "dev": "tsup src/index.ts src/cli.ts --format cjs,esm --dts --watch",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "dependencies": {
+        "@movebridge/core": "workspace:*",
+        "@aptos-labs/ts-sdk": "^1.26.0",
+        "commander": "^11.1.0"
+    },
+    "devDependencies": {
+        "tsup": "^8.0.1",
+        "typescript": "^5.3.2"
+    },
+    "keywords": [
+        "movement",
+        "aptos",
+        "codegen",
+        "typescript",
+        "cli"
+    ],
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/movebridge/movebridge-sdk",
+        "directory": "packages/codegen"
+    }
+}
