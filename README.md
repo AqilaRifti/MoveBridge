@@ -6,12 +6,37 @@ MoveBridge SDK is a comprehensive TypeScript SDK that simplifies frontend develo
 
 ## Features
 
-- ✅ **Unified wallet connection** - Support for Petra, Martian, and Pontem wallets
+- ✅ **Unified wallet connection** - Support for Petra, Pontem, and Nightly wallets
 - ✅ **Type-safe contract interactions** - Full TypeScript support with auto-generated types
 - ✅ **React hooks** - Easy integration with React applications
 - ✅ **Auto-generated types** - Generate TypeScript bindings from deployed Move modules
 - ✅ **Event subscriptions** - Real-time contract event listening
 - ✅ **Transaction simulation** - Estimate gas before submitting
+
+## Demos
+
+### Interactive Demo
+
+Open `demo/index.html` in your browser for a quick standalone demo that works without a build step.
+
+### Full Demo App
+
+A complete Next.js demo application showcasing all SDK features:
+
+```bash
+# From the monorepo root
+pnpm install
+pnpm build
+pnpm --filter movebridge-demo dev
+```
+
+Then open [http://localhost:3000](http://localhost:3000)
+
+Features:
+- Dashboard with account overview
+- Token transfers with transaction tracking
+- Contract interaction (view & entry functions)
+- Real-time event subscriptions
 
 ## Packages
 
@@ -20,6 +45,7 @@ MoveBridge SDK is a comprehensive TypeScript SDK that simplifies frontend develo
 | `@movebridge/core` | Core SDK with wallet management, transactions, and contract interactions |
 | `@movebridge/react` | React hooks and pre-built components |
 | `@movebridge/codegen` | CLI tool for generating TypeScript bindings |
+| `@movebridge/testing` | Testing utilities: mocks, fakers, validators |
 
 ## Quick Start
 
@@ -34,6 +60,9 @@ npm install @movebridge/react
 
 # Code generation CLI
 npm install -D @movebridge/codegen
+
+# Testing utilities
+npm install -D @movebridge/testing
 ```
 
 ### Basic Usage
@@ -254,6 +283,50 @@ Error codes:
 - `TRANSACTION_FAILED` - Transaction execution failed
 - `VIEW_FUNCTION_FAILED` - View function call failed
 - `NETWORK_ERROR` - Network request failed
+
+## Testing
+
+The `@movebridge/testing` package provides comprehensive testing utilities:
+
+```typescript
+import { 
+  createTestHarness, 
+  createFaker,
+  isValidAddress,
+  validateSchema 
+} from '@movebridge/testing';
+
+// Create a test harness with mocked components
+const harness = createTestHarness({ seed: 12345 });
+
+// Configure mock responses
+harness.client.mockResponse('getAccountBalance', '1000000000');
+
+// Use the mocked client
+const balance = await harness.client.getAccountBalance('0x1');
+
+// Assert on calls
+harness.tracker.assertCalled('getAccountBalance');
+harness.tracker.assertCalledWith('getAccountBalance', '0x1');
+
+// Simulate network conditions
+harness.simulator.simulateLatency(100);
+harness.simulator.simulateNetworkError();
+harness.simulator.simulateRateLimit(5);
+
+// Generate fake data
+const faker = createFaker({ seed: 42 });
+const address = faker.fakeAddress();
+const balance = faker.fakeBalance({ min: '0', max: '1000000000' });
+const tx = faker.fakeTransaction();
+
+// Validate data
+isValidAddress('0x1234...'); // true/false
+validateSchema(data, 'Resource'); // throws if invalid
+
+// Cleanup
+harness.cleanup();
+```
 
 ## Development
 

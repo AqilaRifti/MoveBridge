@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ABIParser, type ModuleABI, type FunctionABI } from '../parser';
+import { ABIParser } from '../parser';
 
 // Mock the Aptos SDK
 vi.mock('@aptos-labs/ts-sdk', () => ({

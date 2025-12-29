@@ -78,6 +78,7 @@ export function useContract<T = unknown>(options: UseContractOptions): UseContra
     const contract = useMemo(() => {
         if (!movement) return null;
         return movement.contract(options);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [movement, options.address, options.module]);
 
     // Read (view function)

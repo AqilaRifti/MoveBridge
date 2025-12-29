@@ -344,31 +344,13 @@ describe('TypeGenerator', () => {
                         isEntry: true,
                         isView: false,
                         genericTypeParams: [],
-                        params: ['&signer'],
-                        return: [],
-                    },
-                ],
-            };
-
-            // This function only has signer param, so it will be skipped
-            // Let's add another param
-            const abi2: ModuleABI = {
-                address: '0x1',
-                name: 'test',
-                exposedFunctions: [
-                    {
-                        name: 'do_something',
-                        visibility: 'public',
-                        isEntry: true,
-                        isView: false,
-                        genericTypeParams: [],
                         params: ['&signer', 'u64'],
                         return: [],
                     },
                 ],
             };
 
-            const code = generator.generateClass(abi2);
+            const code = generator.generateClass(abi);
 
             expect(code).toContain('Promise<string>');
         });

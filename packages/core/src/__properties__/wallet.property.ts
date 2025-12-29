@@ -91,7 +91,7 @@ describe('Wallet Manager Properties', () => {
      */
     it('Property 8: Invalid wallet error handling', async () => {
         // Test with known valid wallet types that aren't installed in test environment
-        const walletTypes: WalletType[] = ['petra', 'martian', 'pontem'];
+        const walletTypes: WalletType[] = ['petra', 'pontem', 'nightly'];
 
         for (const wallet of walletTypes) {
             const walletManager = new WalletManager();

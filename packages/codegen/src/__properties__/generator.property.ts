@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { TypeGenerator } from '../generator';
-import { ABIParser, type ModuleABI, type FunctionABI } from '../parser';
+import { ABIParser, type ModuleABI } from '../parser';
 
 // Create a real parser for type conversion
 const parser = new ABIParser('testnet');

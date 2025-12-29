@@ -17,12 +17,24 @@ export interface WalletModalProps {
 }
 
 /**
- * Wallet display info
+ * Wallet display info - Wallets that support Movement Network
  */
-const WALLET_INFO: Record<WalletType, { name: string; icon: string }> = {
-    petra: { name: 'Petra', icon: '🦊' },
-    martian: { name: 'Martian', icon: '👽' },
-    pontem: { name: 'Pontem', icon: '🌉' },
+const WALLET_INFO: Record<WalletType, { name: string; icon: string; description: string }> = {
+    petra: {
+        name: 'Petra',
+        icon: '🦊',
+        description: 'Recommended for Movement'
+    },
+    pontem: {
+        name: 'Pontem',
+        icon: '🌉',
+        description: 'Multi-chain with Movement support'
+    },
+    nightly: {
+        name: 'Nightly',
+        icon: '🌙',
+        description: 'Movement & Aptos wallet'
+    },
 };
 
 /**
@@ -128,8 +140,44 @@ export function WalletModal({ open, onClose }: WalletModalProps) {
 
                 {wallets.length === 0 ? (
                     <div style={emptyStyles}>
-                        <p>No wallets detected.</p>
-                        <p>Please install Petra, Martian, or Pontem wallet.</p>
+                        <p style={{ marginBottom: '12px' }}>No wallets detected.</p>
+                        <p style={{ marginBottom: '16px' }}>
+                            Install a wallet that supports <strong>Movement Network</strong>:
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <a
+                                href="https://petra.app/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'inline-block',
+                                    padding: '8px 16px',
+                                    backgroundColor: '#4f46e5',
+                                    color: 'white',
+                                    borderRadius: '6px',
+                                    textDecoration: 'none',
+                                    fontSize: '14px',
+                                }}
+                            >
+                                🦊 Get Petra (Recommended)
+                            </a>
+                            <a
+                                href="https://pontem.network/pontem-wallet"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'inline-block',
+                                    padding: '8px 16px',
+                                    backgroundColor: '#6366f1',
+                                    color: 'white',
+                                    borderRadius: '6px',
+                                    textDecoration: 'none',
+                                    fontSize: '14px',
+                                }}
+                            >
+                                🌉 Get Pontem
+                            </a>
+                        </div>
                     </div>
                 ) : (
                     <div>
@@ -141,7 +189,12 @@ export function WalletModal({ open, onClose }: WalletModalProps) {
                                 disabled={connecting}
                             >
                                 <span style={{ fontSize: '24px' }}>{WALLET_INFO[wallet].icon}</span>
-                                <span>{WALLET_INFO[wallet].name}</span>
+                                <div style={{ textAlign: 'left' }}>
+                                    <div>{WALLET_INFO[wallet].name}</div>
+                                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                                        {WALLET_INFO[wallet].description}
+                                    </div>
+                                </div>
                             </button>
                         ))}
                     </div>

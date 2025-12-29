@@ -78,8 +78,44 @@ export function useBalance(address?: string | null): UseBalanceReturn {
 
     // Fetch balance when address changes
     useEffect(() => {
-        fetchBalance();
-    }, [fetchBalance]);
+        let cancelled = false;
+
+        const doFetch = async () => {
+            if (!movement || !targetAddress) {
+                setBalance(null);
+                return;
+            }
+
+            setLoading(true);
+            setError(null);
+
+            try {
+                const result = await movement.getAccountBalance(targetAddress);
+                if (!cancelled) {
+                    setBalance(result);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    const movementError = err as MovementError;
+                    setError(movementError);
+                    setBalance(null);
+                    if (onError) {
+                        onError(movementError);
+                    }
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        doFetch();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [movement, targetAddress, onError]);
 
     return {
         balance,

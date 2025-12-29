@@ -107,7 +107,7 @@ describe('WalletButton', () => {
 describe('WalletModal', () => {
     it('should render available wallets', () => {
         const Wrapper = createWrapper({
-            wallets: ['petra', 'martian', 'pontem'],
+            wallets: ['petra', 'pontem', 'nightly'],
         });
         render(
             <Wrapper>
@@ -116,8 +116,8 @@ describe('WalletModal', () => {
         );
 
         expect(screen.getByText(/petra/i)).toBeInTheDocument();
-        expect(screen.getByText(/martian/i)).toBeInTheDocument();
         expect(screen.getByText(/pontem/i)).toBeInTheDocument();
+        expect(screen.getByText(/nightly/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {

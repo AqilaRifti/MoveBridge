@@ -4,12 +4,16 @@
  */
 
 import { useMovementContext } from '../context';
-import type { WalletType } from '@movebridge/core';
+import type { WalletType, NetworkType, Movement } from '@movebridge/core';
 
 /**
  * Return type for useMovement hook
  */
 export interface UseMovementReturn {
+    /** Movement SDK instance */
+    movement: Movement | null;
+    /** Current network */
+    network: NetworkType;
     /** Connected wallet address */
     address: string | null;
     /** Whether a wallet is connected */
@@ -51,10 +55,12 @@ export interface UseMovementReturn {
  * ```
  */
 export function useMovement(): UseMovementReturn {
-    const { address, connected, connecting, connect, disconnect, wallets, wallet } =
+    const { movement, network, address, connected, connecting, connect, disconnect, wallets, wallet } =
         useMovementContext();
 
     return {
+        movement,
+        network,
         address,
         connected,
         connecting,

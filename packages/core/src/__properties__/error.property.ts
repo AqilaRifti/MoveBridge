@@ -96,8 +96,8 @@ describe('Error Handling Properties', () => {
     });
 
     it('Property 23: Error details inclusion - wallet errors', () => {
-        const walletArb = fc.constantFrom('petra', 'martian', 'pontem', 'unknown');
-        const availableArb = fc.array(fc.constantFrom('petra', 'martian', 'pontem'));
+        const walletArb = fc.constantFrom('petra', 'pontem', 'nightly', 'unknown');
+        const availableArb = fc.array(fc.constantFrom('petra', 'pontem', 'nightly'));
 
         fc.assert(
             fc.property(walletArb, availableArb, (wallet, available) => {

@@ -5,8 +5,8 @@
 /** Supported network types */
 export type NetworkType = 'mainnet' | 'testnet';
 
-/** Supported wallet types */
-export type WalletType = 'petra' | 'martian' | 'pontem';
+/** Supported wallet types for Movement Network */
+export type WalletType = 'petra' | 'pontem' | 'nightly';
 
 /** Configuration options for Movement client */
 export interface MovementConfig {

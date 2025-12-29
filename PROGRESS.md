@@ -10,7 +10,7 @@ The project is structured as a pnpm monorepo containing three main packages:
 
 **@movebridge/core** - The foundational SDK package providing:
 - Network configuration for Movement mainnet (Chain ID 126) and testnet (Chain ID 250)
-- Wallet management with support for Petra, Martian, and Pontem wallets
+- Wallet management with support for Petra, Pontem, and Nightly wallets
 - Transaction building, signing, and submission
 - Contract interface for view and entry function calls
 - Event subscription system with polling-based detection

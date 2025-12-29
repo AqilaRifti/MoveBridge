@@ -1,0 +1,60 @@
+{
+    "name": "@movebridge/testing",
+    "version": "0.0.1",
+    "description": "Testing utilities for MoveBridge SDK - mocks, validators, fakers, and test harness",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+        "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
+        "test:properties": "vitest run --testNamePattern='Property'"
+    },
+    "dependencies": {
+        "@movebridge/core": "workspace:*",
+        "superstruct": "^1.0.3"
+    },
+    "devDependencies": {
+        "fast-check": "^3.14.0",
+        "tsup": "^8.0.1",
+        "typescript": "^5.3.2"
+    },
+    "peerDependencies": {
+        "@movebridge/core": ">=0.0.1"
+    },
+    "keywords": [
+        "movement",
+        "aptos",
+        "blockchain",
+        "testing",
+        "mock",
+        "validator",
+        "sdk"
+    ],
+    "author": "Aqila Rifti",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/AqilaRifti/MoveBridge",
+        "directory": "packages/testing"
+    },
+    "homepage": "https://github.com/AqilaRifti/MoveBridge#readme",
+    "bugs": {
+        "url": "https://github.com/AqilaRifti/MoveBridge/issues"
+    }
+}

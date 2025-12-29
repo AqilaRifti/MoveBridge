@@ -23,12 +23,6 @@ describe('Transaction Builder Properties', () => {
 
         fc.assert(
             fc.property(addressArb, amountArb, coinTypeArb, (to, amount, coinType) => {
-                const options: TransferOptions = {
-                    to,
-                    amount,
-                    coinType: coinType ?? undefined,
-                };
-
                 // Simulate what TransactionBuilder.transfer would produce
                 const payload: TransactionPayload = {
                     type: 'entry_function_payload',

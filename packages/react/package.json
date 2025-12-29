@@ -48,10 +48,15 @@
         "wallet",
         "web3"
     ],
+    "author": "Aqila Rifti",
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/movebridge/movebridge-sdk",
+        "url": "https://github.com/AqilaRifti/MoveBridge",
         "directory": "packages/react"
+    },
+    "homepage": "https://github.com/AqilaRifti/MoveBridge#readme",
+    "bugs": {
+        "url": "https://github.com/AqilaRifti/MoveBridge/issues"
     }
 }

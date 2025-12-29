@@ -2,7 +2,7 @@
  * @movebridge/react - Hooks Tests
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
 import { MovementProvider, MovementContext, type MovementContextValue } from '../context';
@@ -16,7 +16,7 @@ import { useWaitForTransaction } from '../hooks/useWaitForTransaction';
 vi.mock('@movebridge/core', () => ({
     Movement: vi.fn().mockImplementation(() => ({
         wallet: {
-            detectWallets: vi.fn().mockReturnValue(['petra', 'martian']),
+            detectWallets: vi.fn().mockReturnValue(['petra', 'pontem']),
             connect: vi.fn().mockResolvedValue(undefined),
             disconnect: vi.fn().mockResolvedValue(undefined),
             getState: vi.fn().mockReturnValue({ connected: false, address: null, publicKey: null }),
@@ -72,7 +72,7 @@ describe('useMovement', () => {
                 address: null,
                 connected: false,
                 connecting: false,
-                wallets: ['petra', 'martian'],
+                wallets: ['petra', 'pontem'],
                 wallet: null,
                 connect: vi.fn(),
                 disconnect: vi.fn(),
@@ -82,7 +82,7 @@ describe('useMovement', () => {
         expect(result.current.address).toBeNull();
         expect(result.current.connected).toBe(false);
         expect(result.current.connecting).toBe(false);
-        expect(result.current.wallets).toEqual(['petra', 'martian']);
+        expect(result.current.wallets).toEqual(['petra', 'pontem']);
         expect(result.current.wallet).toBeNull();
     });
 

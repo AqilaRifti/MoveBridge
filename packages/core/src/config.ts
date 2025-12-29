@@ -19,7 +19,7 @@ export const NETWORK_CONFIG: Record<NetworkType, NetworkConfig> = {
         rpcUrl: 'https://testnet.movementnetwork.xyz/v1',
         indexerUrl: null,
         explorerUrl: 'https://explorer.movementnetwork.xyz/?network=bardock+testnet',
-        faucetUrl: 'https://faucet.movementnetwork.xyz/',
+        faucetUrl: 'https://faucet.testnet.movementnetwork.xyz/',
     },
 } as const;
 

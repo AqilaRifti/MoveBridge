@@ -3,7 +3,8 @@
  * Tests CLI logic without spawning processes
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { dirname } from 'path';
 
 // Mock fs/promises
 vi.mock('fs/promises', () => ({
@@ -123,21 +124,18 @@ describe('CLI Logic', () => {
 
     describe('output path handling', () => {
         it('should extract directory from output path', () => {
-            const { dirname } = require('path');
             const output = '/path/to/generated/coin.ts';
             const dir = dirname(output);
             expect(dir).toBe('/path/to/generated');
         });
 
         it('should handle relative paths', () => {
-            const { dirname } = require('path');
             const output = 'src/generated/coin.ts';
             const dir = dirname(output);
             expect(dir).toBe('src/generated');
         });
 
         it('should handle file in current directory', () => {
-            const { dirname } = require('path');
             const output = 'coin.ts';
             const dir = dirname(output);
             expect(dir).toBe('.');
@@ -176,7 +174,7 @@ describe('CLI Logic', () => {
     describe('code generation flow', () => {
         it('should create parser with correct network', async () => {
             const { ABIParser } = await import('../parser');
-            const parser = new ABIParser('testnet');
+            new ABIParser('testnet');
             expect(ABIParser).toHaveBeenCalledWith('testnet');
         });
 
