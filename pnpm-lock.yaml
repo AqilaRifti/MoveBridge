@@ -66,10 +66,10 @@ importers:
   examples/demo:
     dependencies:
       '@movebridge/core':
-        specifier: workspace:*
+        specifier: ^0.0.1
         version: link:../../packages/core
       '@movebridge/react':
-        specifier: workspace:*
+        specifier: ^0.0.1
         version: link:../../packages/react
       next:
         specifier: 14.2.0
