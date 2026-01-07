@@ -5,7 +5,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventListener } from '../events';
-import { MovementError } from '../errors';
 
 // Mock Aptos client
 const mockAptosClient = {
@@ -43,20 +42,19 @@ describe('EventListener', () => {
             expect(id2).toMatch(/^sub_\d+$/);
         });
 
-        it('should throw INVALID_EVENT_HANDLE for invalid format', () => {
-            expect(() =>
-                eventListener.subscribe({
-                    eventHandle: 'invalid',
-                    callback: vi.fn(),
-                })
-            ).toThrow(MovementError);
+        it('should accept legacy eventHandle format and parse it', () => {
+            // Legacy format is now accepted more permissively
+            // Invalid formats are used as-is for accountAddress and eventType
+            const callback = vi.fn();
 
-            expect(() =>
-                eventListener.subscribe({
-                    eventHandle: 'invalid',
-                    callback: vi.fn(),
-                })
-            ).toThrow(expect.objectContaining({ code: 'INVALID_EVENT_HANDLE' }));
+            // This should not throw - legacy format is accepted
+            const id = eventListener.subscribe({
+                eventHandle: 'invalid',
+                callback,
+            });
+
+            expect(id).toMatch(/^sub_\d+$/);
+            expect(eventListener.hasSubscription(id)).toBe(true);
         });
 
         it('should accept valid event handle formats', () => {

@@ -1,39 +1,61 @@
 /**
  * @movebridge/core - Event Listener
- * Subscribes to and handles contract events
+ * Subscribes to and handles blockchain events via polling
  */
 
 import type { Aptos } from '@aptos-labs/ts-sdk';
-import { isValidEventHandle } from './config';
-import { Errors } from './errors';
-import type { EventSubscription, ContractEvent } from './types';
+import type { ContractEvent } from './types';
+
+/**
+ * Event subscription configuration
+ */
+export interface EventSubscriptionConfig {
+    /** Account address to watch for events */
+    accountAddress: string;
+    /** Event type (e.g., '0x1::coin::DepositEvent') */
+    eventType: string;
+    /** Callback function when events are received */
+    callback: (event: ContractEvent) => void;
+}
+
+/**
+ * Legacy event subscription (for backward compatibility)
+ */
+export interface LegacyEventSubscription {
+    /** Event handle in format: 0xADDRESS::module::EventType */
+    eventHandle: string;
+    /** Callback function when events are received */
+    callback: (event: ContractEvent) => void;
+}
 
 /**
  * Internal subscription data
  */
 interface InternalSubscription {
-    eventHandle: string;
+    accountAddress: string;
+    eventType: string;
     callback: (event: ContractEvent) => void;
-    lastSequenceNumber: string;
+    lastSequenceNumber: bigint;
     intervalId: ReturnType<typeof setInterval> | null;
 }
 
 /**
  * Event Listener
- * Manages event subscriptions and polling
+ * Manages event subscriptions and polling for blockchain events
  *
  * @example
  * ```typescript
- * // Subscribe to events
- * const subscriptionId = movement.events.subscribe({
- *   eventHandle: '0x123::counter::CounterChanged',
+ * // Subscribe to deposit events for an account
+ * const subId = movement.events.subscribe({
+ *   accountAddress: '0x123...',
+ *   eventType: '0x1::coin::DepositEvent',
  *   callback: (event) => {
- *     console.log('Counter changed:', event);
+ *     console.log('Deposit received:', event.data);
  *   },
  * });
  *
- * // Unsubscribe
- * movement.events.unsubscribe(subscriptionId);
+ * // Unsubscribe when done
+ * movement.events.unsubscribe(subId);
  * ```
  */
 export class EventListener {
@@ -49,29 +71,66 @@ export class EventListener {
     }
 
     /**
-     * Subscribes to contract events
+     * Subscribes to blockchain events
+     * Supports both new format (accountAddress + eventType) and legacy format (eventHandle)
+     * 
      * @param subscription - Subscription configuration
-     * @returns Subscription ID
-     * @throws MovementError with code INVALID_EVENT_HANDLE if event handle is invalid
+     * @returns Subscription ID for unsubscribing
+     * 
+     * @example
+     * ```typescript
+     * // New format (recommended)
+     * const subId = events.subscribe({
+     *   accountAddress: '0x1',
+     *   eventType: '0x1::coin::DepositEvent',
+     *   callback: (event) => console.log(event),
+     * });
+     * 
+     * // Legacy format (backward compatible)
+     * const subId = events.subscribe({
+     *   eventHandle: '0x1::coin::DepositEvent',
+     *   callback: (event) => console.log(event),
+     * });
+     * ```
      */
-    subscribe(subscription: EventSubscription): string {
-        if (!isValidEventHandle(subscription.eventHandle)) {
-            throw Errors.invalidEventHandle(subscription.eventHandle);
-        }
-
+    subscribe(subscription: EventSubscriptionConfig | LegacyEventSubscription): string {
         const subscriptionId = `sub_${++this.subscriptionCounter}`;
 
+        // Handle both new and legacy subscription formats
+        let accountAddress: string;
+        let eventType: string;
+
+        if ('accountAddress' in subscription) {
+            accountAddress = subscription.accountAddress;
+            eventType = subscription.eventType;
+        } else {
+            // Legacy format: parse eventHandle (0xADDRESS::module::EventType)
+            const parts = subscription.eventHandle.split('::');
+            if (parts.length >= 3 && parts[0]) {
+                accountAddress = parts[0];
+                eventType = subscription.eventHandle;
+            } else {
+                // Invalid format, use as-is
+                accountAddress = subscription.eventHandle;
+                eventType = subscription.eventHandle;
+            }
+        }
+
         const internalSub: InternalSubscription = {
-            eventHandle: subscription.eventHandle,
+            accountAddress,
+            eventType,
             callback: subscription.callback,
-            lastSequenceNumber: '0',
+            lastSequenceNumber: BigInt(-1), // Start at -1 to catch all events
             intervalId: null,
         };
+
+        // Store subscription first
+        this.subscriptions.set(subscriptionId, internalSub);
 
         // Start polling
         internalSub.intervalId = setInterval(() => {
             this.pollEvents(subscriptionId).catch(() => {
-                // Silently handle polling errors
+                // Silently handle polling errors - continue polling
             });
         }, this.pollIntervalMs);
 
@@ -79,8 +138,6 @@ export class EventListener {
         this.pollEvents(subscriptionId).catch(() => {
             // Silently handle initial poll errors
         });
-
-        this.subscriptions.set(subscriptionId, internalSub);
 
         return subscriptionId;
     }
@@ -95,6 +152,7 @@ export class EventListener {
         if (subscription) {
             if (subscription.intervalId) {
                 clearInterval(subscription.intervalId);
+                subscription.intervalId = null;
             }
             this.subscriptions.delete(subscriptionId);
         }
@@ -127,8 +185,8 @@ export class EventListener {
     }
 
     /**
-     * Polls for new events
-     * @param subscriptionId - Subscription ID
+     * Polls for new events for a subscription
+     * @internal
      */
     private async pollEvents(subscriptionId: string): Promise<void> {
         const subscription = this.subscriptions.get(subscriptionId);
@@ -138,45 +196,48 @@ export class EventListener {
         }
 
         try {
-            // Parse event handle: 0xADDRESS::module::EventType
-            const parts = subscription.eventHandle.split('::');
-            if (parts.length !== 3) {
-                return;
-            }
-
-            const [address, module, eventType] = parts;
-
-            // Construct the event handle address
-            const eventHandleStruct = `${address}::${module}::${eventType}`;
-
-            // Get events from the account
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const client = this.aptosClient as any;
-            const events = await client.getAccountEventsByEventType({
-                accountAddress: address,
-                eventType: eventHandleStruct,
+            // Use Aptos SDK to get events by type
+            const events = await this.aptosClient.getAccountEventsByEventType({
+                accountAddress: subscription.accountAddress,
+                eventType: subscription.eventType as `${string}::${string}::${string}`,
                 options: {
                     limit: 25,
+                    orderBy: [{ sequence_number: 'desc' }],
                 },
             });
 
-            // Process new events
-            for (const event of events) {
-                const sequenceNumber = event.sequence_number?.toString() ?? '0';
+            // Process events in reverse order (oldest first) to maintain sequence
+            const sortedEvents = [...events].sort((a, b) => {
+                const seqA = BigInt(a.sequence_number);
+                const seqB = BigInt(b.sequence_number);
+                return seqA < seqB ? -1 : seqA > seqB ? 1 : 0;
+            });
 
-                if (BigInt(sequenceNumber) > BigInt(subscription.lastSequenceNumber)) {
+            for (const event of sortedEvents) {
+                const sequenceNumber = BigInt(event.sequence_number);
+
+                // Only process events newer than last seen
+                if (sequenceNumber > subscription.lastSequenceNumber) {
                     const contractEvent: ContractEvent = {
                         type: event.type,
-                        sequenceNumber,
+                        sequenceNumber: String(event.sequence_number),
                         data: event.data as Record<string, unknown>,
                     };
 
-                    subscription.callback(contractEvent);
+                    // Invoke callback
+                    try {
+                        subscription.callback(contractEvent);
+                    } catch {
+                        // Don't let callback errors stop polling
+                    }
+
+                    // Update last seen sequence number
                     subscription.lastSequenceNumber = sequenceNumber;
                 }
             }
         } catch {
-            // Silently handle polling errors
+            // Silently handle polling errors - continue polling
+            // This ensures network hiccups don't break subscriptions
         }
     }
 }

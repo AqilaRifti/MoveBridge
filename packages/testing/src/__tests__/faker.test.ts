@@ -71,7 +71,9 @@ describe('Response Faker', () => {
             expect(tx.sender).toMatch(/^0x[a-f0-9]{64}$/);
             expect(tx.sequenceNumber).toBeDefined();
             expect(tx.payload).toBeDefined();
-            expect(tx.payload.type).toBe('entry_function_payload');
+            expect(tx.payload.function).toBeDefined();
+            expect(tx.payload.typeArguments).toEqual([]);
+            expect(tx.payload.functionArguments).toEqual([]);
             expect(tx.timestamp).toBeDefined();
         });
     });

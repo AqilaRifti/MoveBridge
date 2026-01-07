@@ -177,26 +177,23 @@ describe('Schema Validator', () => {
                 sender: '0x456',
                 sequenceNumber: '1',
                 payload: {
-                    type: 'entry_function_payload',
                     function: '0x1::coin::transfer',
                     typeArguments: [],
-                    arguments: [],
+                    functionArguments: [],
                 },
                 timestamp: '1234567890',
             };
             expect(validateSchema(transaction, 'Transaction')).toBe(true);
         });
 
-        it('should reject transaction with wrong payload type', () => {
+        it('should reject transaction with missing payload fields', () => {
             const transaction = {
                 hash: '0x123',
                 sender: '0x456',
                 sequenceNumber: '1',
                 payload: {
-                    type: 'script_payload', // wrong type
                     function: '0x1::coin::transfer',
-                    typeArguments: [],
-                    arguments: [],
+                    // missing typeArguments and functionArguments
                 },
                 timestamp: '1234567890',
             };

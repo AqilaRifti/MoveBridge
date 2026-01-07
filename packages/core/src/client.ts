@@ -193,10 +193,9 @@ export class Movement {
                 sender: userTx.sender,
                 sequenceNumber: userTx.sequence_number,
                 payload: {
-                    type: 'entry_function_payload',
                     function: userTx.payload?.function ?? '',
                     typeArguments: userTx.payload?.type_arguments ?? [],
-                    arguments: userTx.payload?.arguments ?? [],
+                    functionArguments: userTx.payload?.arguments ?? [],
                 },
                 timestamp: userTx.timestamp,
             };

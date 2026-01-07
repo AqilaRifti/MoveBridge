@@ -23,8 +23,9 @@ export default function TransferPage() {
 
         try {
             // Convert MOVE to octas (1 MOVE = 10^8 octas)
-            const amountInOctas = (parseFloat(amount) * 1e8).toString()
+            const amountInOctas = Math.floor(parseFloat(amount) * 1e8).toString()
 
+            // BuildOptions uses 'arguments', which gets converted to 'functionArguments' internally
             await send({
                 function: '0x1::aptos_account::transfer',
                 typeArguments: [],

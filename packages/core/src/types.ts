@@ -52,7 +52,11 @@ export interface Transaction {
     hash: string;
     sender: string;
     sequenceNumber: string;
-    payload: TransactionPayload;
+    payload: {
+        function: string;
+        typeArguments: string[];
+        functionArguments: unknown[];
+    };
     timestamp: string;
 }
 
@@ -65,12 +69,14 @@ export interface TransactionResponse {
     events: ContractEvent[];
 }
 
-/** Transaction payload for entry functions */
+/** Transaction payload for entry functions (AIP-62 compatible) */
 export interface TransactionPayload {
-    type: 'entry_function_payload';
+    /** Entry function identifier: address::module::function */
     function: string;
+    /** Type arguments for generic functions */
     typeArguments: string[];
-    arguments: unknown[];
+    /** Function arguments */
+    functionArguments: unknown[];
 }
 
 /** Signed transaction ready for submission */
@@ -122,8 +128,20 @@ export interface ContractOptions {
     module: string;
 }
 
-/** Event subscription configuration */
+/** Event subscription configuration (new format) */
 export interface EventSubscription {
+    /** Account address to watch for events */
+    accountAddress: string;
+    /** Event type (e.g., '0x1::coin::DepositEvent') */
+    eventType: string;
+    /** Callback function when events are received */
+    callback: (event: ContractEvent) => void;
+}
+
+/** Legacy event subscription (backward compatible) */
+export interface LegacyEventSubscription {
+    /** Event handle in format: 0xADDRESS::module::EventType */
     eventHandle: string;
+    /** Callback function when events are received */
     callback: (event: ContractEvent) => void;
 }

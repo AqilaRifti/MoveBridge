@@ -1,6 +1,8 @@
 /**
  * Property-based tests for Movement client
  * @module @movebridge/core
+ * 
+ * Feature: sdk-rework
  */
 
 import { describe, it, expect } from 'vitest';
@@ -29,6 +31,48 @@ describe('Movement Client Properties', () => {
         fc.assert(
             fc.property(validAddressArb, (address) => {
                 expect(isValidAddress(address)).toBe(true);
+                return true;
+            }),
+            { numRuns: 100 }
+        );
+    });
+
+    /**
+     * Feature: sdk-rework, Property 2: Invalid Address Rejection
+     * For any string that does not match the hex address format (0x followed by 1-64 hex characters),
+     * the SDK SHALL reject it with an INVALID_ADDRESS error before attempting network operations.
+     * 
+     * **Validates: Requirements 1.5**
+     */
+    it('Property 2: Invalid Address Rejection', () => {
+        // Generate various invalid address formats
+        const invalidAddressArb = fc.oneof(
+            // Missing 0x prefix (just hex)
+            fc.hexaString({ minLength: 1, maxLength: 64 }),
+            // Too long (more than 64 hex chars after 0x)
+            fc.hexaString({ minLength: 65, maxLength: 100 }).map((hex) => `0x${hex}`),
+            // Contains non-hex characters after 0x
+            fc.string({ minLength: 1, maxLength: 64 })
+                .filter((s) => /[^0-9a-fA-F]/.test(s))
+                .map((s) => `0x${s}`),
+            // Empty after prefix
+            fc.constant('0x'),
+            // Empty string
+            fc.constant(''),
+            // Random strings without 0x prefix
+            fc.string({ minLength: 1, maxLength: 20 }).filter((s) => !s.startsWith('0x')),
+            // Whitespace
+            fc.constant('   '),
+            // Special characters
+            fc.constant('0x!@#$%'),
+            // Unicode characters
+            fc.constant('0x你好世界'),
+        );
+
+        fc.assert(
+            fc.property(invalidAddressArb, (address) => {
+                // Invalid addresses should fail validation
+                expect(isValidAddress(address)).toBe(false);
                 return true;
             }),
             { numRuns: 100 }

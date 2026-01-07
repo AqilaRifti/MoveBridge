@@ -1,13 +1,12 @@
 /**
  * @movebridge/core - Transaction Builder
- * Constructs, signs, and submits transactions
+ * Constructs, signs, and submits transactions using AIP-62 wallet standard
  */
 
 import type { Aptos } from '@aptos-labs/ts-sdk';
-import { DEFAULT_COIN_TYPE } from './config';
 import { Errors, wrapError } from './errors';
 import type { WalletManager } from './wallet';
-import type { TransferOptions, BuildOptions, TransactionPayload, SignedTransaction } from './types';
+import type { TransferOptions, BuildOptions, TransactionPayload } from './types';
 
 /**
  * Transaction Builder
@@ -15,22 +14,19 @@ import type { TransferOptions, BuildOptions, TransactionPayload, SignedTransacti
  *
  * @example
  * ```typescript
- * // Transfer tokens
- * const tx = await movement.transaction.transfer({
+ * // Transfer tokens using aptos_account::transfer (recommended)
+ * const hash = await movement.transaction.transfer({
  *   to: '0x123...',
- *   amount: '1000000',
+ *   amount: '1000000', // in octas
  * });
  *
- * // Build custom transaction
- * const tx = await movement.transaction.build({
- *   function: '0x1::coin::transfer',
- *   typeArguments: ['0x1::aptos_coin::AptosCoin'],
+ * // Build and submit custom transaction
+ * const payload = await movement.transaction.build({
+ *   function: '0x1::aptos_account::transfer',
+ *   typeArguments: [],
  *   arguments: ['0x123...', '1000000'],
  * });
- *
- * // Sign and submit
- * const signed = await movement.transaction.sign(tx);
- * const hash = await movement.transaction.submit(signed);
+ * const hash = await movement.transaction.signAndSubmit(payload);
  * ```
  */
 export class TransactionBuilder {
@@ -41,115 +37,56 @@ export class TransactionBuilder {
 
     /**
      * Builds a transfer transaction payload
+     * Uses 0x1::aptos_account::transfer which handles account creation
      * @param options - Transfer options
-     * @returns Transaction payload
+     * @returns Transaction payload ready for signing
      */
     async transfer(options: TransferOptions): Promise<TransactionPayload> {
-        const coinType = options.coinType ?? DEFAULT_COIN_TYPE;
-
+        // Use aptos_account::transfer - it auto-creates recipient account if needed
         return {
-            type: 'entry_function_payload',
-            function: '0x1::coin::transfer',
-            typeArguments: [coinType],
-            arguments: [options.to, options.amount],
+            function: '0x1::aptos_account::transfer',
+            typeArguments: [],
+            functionArguments: [options.to, options.amount],
         };
     }
 
     /**
      * Builds a generic transaction payload
-     * @param options - Build options
-     * @returns Transaction payload
+     * @param options - Build options with function, typeArguments, and arguments
+     * @returns Transaction payload ready for signing
      */
     async build(options: BuildOptions): Promise<TransactionPayload> {
         return {
-            type: 'entry_function_payload',
             function: options.function,
             typeArguments: options.typeArguments,
-            arguments: options.arguments,
+            functionArguments: options.arguments,
         };
     }
 
     /**
-     * Signs a transaction payload
-     * @param payload - Transaction payload to sign
-     * @returns Signed transaction
-     * @throws MovementError with code WALLET_NOT_CONNECTED if no wallet is connected
-     */
-    async sign(payload: TransactionPayload): Promise<SignedTransaction> {
-        const adapter = this.walletManager.getAdapter();
-        const state = this.walletManager.getState();
-
-        if (!adapter || !state.connected || !state.address) {
-            throw Errors.walletNotConnected();
-        }
-
-        try {
-            const signatureBytes = await adapter.signTransaction({
-                type: payload.type,
-                function: payload.function,
-                type_arguments: payload.typeArguments,
-                arguments: payload.arguments,
-            });
-
-            // Convert signature bytes to hex string
-            const signature = Array.from(signatureBytes)
-                .map((b) => b.toString(16).padStart(2, '0'))
-                .join('');
-
-            return {
-                payload,
-                signature: `0x${signature}`,
-                sender: state.address,
-            };
-        } catch (error) {
-            throw wrapError(error, 'TRANSACTION_FAILED', 'Failed to sign transaction');
-        }
-    }
-
-    /**
-     * Submits a signed transaction to the network
-     * @param signed - Signed transaction
-     * @returns Transaction hash
-     */
-    async submit(signed: SignedTransaction): Promise<string> {
-        const adapter = this.walletManager.getAdapter();
-
-        if (!adapter) {
-            throw Errors.walletNotConnected();
-        }
-
-        try {
-            const result = await adapter.signAndSubmitTransaction({
-                type: signed.payload.type,
-                function: signed.payload.function,
-                type_arguments: signed.payload.typeArguments,
-                arguments: signed.payload.arguments,
-            });
-
-            return result.hash;
-        } catch (error) {
-            throw wrapError(error, 'TRANSACTION_FAILED', 'Failed to submit transaction');
-        }
-    }
-
-    /**
      * Signs and submits a transaction in one step
+     * This is the recommended method for most use cases
      * @param payload - Transaction payload
      * @returns Transaction hash
+     * @throws MovementError with code WALLET_NOT_CONNECTED if no wallet connected
+     * @throws MovementError with code TRANSACTION_FAILED if submission fails
      */
     async signAndSubmit(payload: TransactionPayload): Promise<string> {
         const adapter = this.walletManager.getAdapter();
+        const state = this.walletManager.getState();
 
-        if (!adapter) {
+        if (!adapter || !state.connected) {
             throw Errors.walletNotConnected();
         }
 
         try {
+            // Format payload for AIP-62 wallet standard
             const result = await adapter.signAndSubmitTransaction({
-                type: payload.type,
-                function: payload.function,
-                type_arguments: payload.typeArguments,
-                arguments: payload.arguments,
+                payload: {
+                    function: payload.function,
+                    typeArguments: payload.typeArguments,
+                    functionArguments: payload.functionArguments,
+                },
             });
 
             return result.hash;
@@ -160,8 +97,9 @@ export class TransactionBuilder {
 
     /**
      * Simulates a transaction without submitting
+     * Useful for gas estimation and checking if transaction will succeed
      * @param payload - Transaction payload
-     * @returns Simulation result with gas estimate
+     * @returns Simulation result with success status and gas estimate
      */
     async simulate(payload: TransactionPayload): Promise<{
         success: boolean;
@@ -175,19 +113,20 @@ export class TransactionBuilder {
         }
 
         try {
-            // Use type assertion to work around strict Aptos SDK types
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const client = this.aptosClient as any;
-            const result = await client.transaction.simulate.simple({
+            // Build a raw transaction for simulation
+            const transaction = await this.aptosClient.transaction.build.simple({
                 sender: state.address,
                 data: {
-                    function: payload.function,
-                    typeArguments: payload.typeArguments,
-                    functionArguments: payload.arguments,
+                    function: payload.function as `${string}::${string}::${string}`,
+                    typeArguments: payload.typeArguments as [],
+                    functionArguments: payload.functionArguments as [],
                 },
             });
 
-            const simResult = result[0];
+            // Simulate without signer public key (uses account's public key)
+            const [simResult] = await this.aptosClient.transaction.simulate.simple({
+                transaction,
+            });
 
             return {
                 success: simResult?.success ?? false,
@@ -197,5 +136,15 @@ export class TransactionBuilder {
         } catch (error) {
             throw wrapError(error, 'TRANSACTION_FAILED', 'Failed to simulate transaction');
         }
+    }
+
+    /**
+     * Convenience method: Transfer and wait for confirmation
+     * @param options - Transfer options
+     * @returns Transaction hash
+     */
+    async transferAndSubmit(options: TransferOptions): Promise<string> {
+        const payload = await this.transfer(options);
+        return this.signAndSubmit(payload);
     }
 }

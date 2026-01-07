@@ -51,12 +51,21 @@ const validTransferPayloadArb = fc.record({
 });
 
 /**
- * Arbitrary for valid entry function payloads
+ * Arbitrary for valid entry function payloads (new format with functionArguments)
  */
 const validEntryFunctionPayloadArb = fc.record({
     function: validFunctionArb,
     typeArguments: fc.array(fc.constant('0x1::aptos_coin::AptosCoin'), { maxLength: 3 }),
     arguments: fc.array(fc.oneof(fc.string(), fc.integer()), { maxLength: 5 }),
+});
+
+/**
+ * Arbitrary for valid transaction payloads (new format)
+ */
+const validTransactionPayloadArb = fc.record({
+    function: validFunctionArb,
+    typeArguments: fc.array(fc.constant('0x1::aptos_coin::AptosCoin'), { maxLength: 3 }),
+    functionArguments: fc.array(fc.oneof(fc.string(), fc.integer()), { maxLength: 5 }),
 });
 
 /**
@@ -176,16 +185,12 @@ describe('Transaction Validator Properties', () => {
     });
 
     /**
-     * Additional property: validatePayload correctly validates entry_function_payload type
+     * Additional property: validatePayload correctly validates transaction payload
      */
-    it('Property: validatePayload accepts valid entry_function_payload', () => {
+    it('Property: validatePayload accepts valid transaction payload', () => {
         fc.assert(
-            fc.property(validEntryFunctionPayloadArb, (payload) => {
-                const fullPayload = {
-                    type: 'entry_function_payload' as const,
-                    ...payload,
-                };
-                expect(validatePayload(fullPayload)).toBe(true);
+            fc.property(validTransactionPayloadArb, (payload) => {
+                expect(validatePayload(payload)).toBe(true);
             }),
             { numRuns: 100 }
         );

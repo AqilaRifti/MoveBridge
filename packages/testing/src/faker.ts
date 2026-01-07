@@ -106,10 +106,9 @@ export function createFaker(options?: FakerOptions): ResponseFaker {
                 sender: `0x${randomHex(64)}`,
                 sequenceNumber: randomSequenceNumber(),
                 payload: {
-                    type: 'entry_function_payload',
                     function: `0x${randomHex(64)}::module::function`,
                     typeArguments: [],
-                    arguments: [],
+                    functionArguments: [],
                 },
                 timestamp: randomTimestamp(),
             };

@@ -120,19 +120,49 @@ export function validatePayload(payload: TransactionPayload): boolean {
         );
     }
 
-    if (payload.type !== 'entry_function_payload') {
+    // Validate function identifier
+    if (!FUNCTION_REGEX.test(payload.function)) {
         throw new MovementError(
-            `Unsupported payload type: ${payload.type}`,
+            `Invalid function identifier: ${payload.function}`,
             'INVALID_ARGUMENT',
-            { argument: 'type', value: payload.type, supported: ['entry_function_payload'] }
+            {
+                argument: 'function',
+                value: payload.function,
+                expectedFormat: '0xADDRESS::module::function',
+            }
         );
     }
 
-    return validateEntryFunctionPayload({
-        function: payload.function,
-        typeArguments: payload.typeArguments,
-        arguments: payload.arguments,
-    });
+    // Validate typeArguments is an array
+    if (!Array.isArray(payload.typeArguments)) {
+        throw new MovementError(
+            'typeArguments must be an array',
+            'INVALID_ARGUMENT',
+            { argument: 'typeArguments', value: payload.typeArguments }
+        );
+    }
+
+    // Validate each type argument is a string
+    for (let i = 0; i < payload.typeArguments.length; i++) {
+        if (typeof payload.typeArguments[i] !== 'string') {
+            throw new MovementError(
+                `typeArguments[${i}] must be a string`,
+                'INVALID_ARGUMENT',
+                { argument: `typeArguments[${i}]`, value: payload.typeArguments[i] }
+            );
+        }
+    }
+
+    // Validate functionArguments is an array
+    if (!Array.isArray(payload.functionArguments)) {
+        throw new MovementError(
+            'functionArguments must be an array',
+            'INVALID_ARGUMENT',
+            { argument: 'functionArguments', value: payload.functionArguments }
+        );
+    }
+
+    return true;
 }
 
 /**

@@ -1,6 +1,6 @@
 /**
  * @movebridge/core - Contract Interface
- * Simplified interface for contract interactions
+ * Simplified interface for Move module interactions
  */
 
 import type { Aptos } from '@aptos-labs/ts-sdk';
@@ -15,15 +15,15 @@ import type { ContractOptions } from './types';
  * @example
  * ```typescript
  * const contract = movement.contract({
- *   address: '0x123...',
- *   module: 'counter',
+ *   address: '0x1',
+ *   module: 'coin',
  * });
  *
- * // Read (view function)
- * const count = await contract.view('get_count', []);
+ * // Read (view function) - no wallet needed
+ * const balance = await contract.view('balance', ['0x123...'], ['0x1::aptos_coin::AptosCoin']);
  *
- * // Write (entry function)
- * const txHash = await contract.call('increment', []);
+ * // Write (entry function) - requires connected wallet
+ * const txHash = await contract.call('transfer', ['0x456...', '1000000'], ['0x1::aptos_coin::AptosCoin']);
  * ```
  */
 export class ContractInterface {
@@ -44,32 +44,42 @@ export class ContractInterface {
 
     /**
      * Calls a view function (read-only)
+     * View functions don't require a wallet connection
+     * 
      * @param functionName - Name of the view function
      * @param args - Function arguments
-     * @param typeArgs - Type arguments (optional)
+     * @param typeArgs - Type arguments for generic functions
      * @returns Function result
      * @throws MovementError with code VIEW_FUNCTION_FAILED if call fails
+     * 
+     * @example
+     * ```typescript
+     * // Get coin balance
+     * const balance = await contract.view('balance', [address], ['0x1::aptos_coin::AptosCoin']);
+     * 
+     * // Check if account exists
+     * const exists = await contract.view('exists_at', [address]);
+     * ```
      */
     async view<T = unknown>(
         functionName: string,
-        args: unknown[],
+        args: unknown[] = [],
         typeArgs: string[] = []
     ): Promise<T> {
         const fullFunctionName = `${this.address}::${this.module}::${functionName}`;
 
         try {
-            // Use type assertion to work around strict Aptos SDK types
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const client = this.aptosClient as any;
-            const result = await client.view({
+            // Use Aptos SDK view with correct payload format
+            const result = await this.aptosClient.view({
                 payload: {
-                    function: fullFunctionName,
-                    typeArguments: typeArgs,
-                    functionArguments: args,
+                    function: fullFunctionName as `${string}::${string}::${string}`,
+                    typeArguments: typeArgs as [],
+                    functionArguments: args as [],
                 },
             });
 
-            // Return first result or the entire array
+            // Unwrap single-element arrays for convenience
+            // Return array as-is for multiple values
             return (result.length === 1 ? result[0] : result) as T;
         } catch (error) {
             throw Errors.viewFunctionFailed(fullFunctionName, args, error);
@@ -78,16 +88,27 @@ export class ContractInterface {
 
     /**
      * Calls an entry function (write operation)
+     * Requires a connected wallet
+     * 
      * @param functionName - Name of the entry function
      * @param args - Function arguments
-     * @param typeArgs - Type arguments (optional)
+     * @param typeArgs - Type arguments for generic functions
      * @returns Transaction hash
-     * @throws MovementError with code WALLET_NOT_CONNECTED if no wallet is connected
+     * @throws MovementError with code WALLET_NOT_CONNECTED if no wallet connected
      * @throws MovementError with code TRANSACTION_FAILED if transaction fails
+     * 
+     * @example
+     * ```typescript
+     * // Transfer coins
+     * const txHash = await contract.call('transfer', [recipient, amount], ['0x1::aptos_coin::AptosCoin']);
+     * 
+     * // Call a custom function
+     * const txHash = await contract.call('increment', []);
+     * ```
      */
     async call(
         functionName: string,
-        args: unknown[],
+        args: unknown[] = [],
         typeArgs: string[] = []
     ): Promise<string> {
         const adapter = this.walletManager.getAdapter();
@@ -100,11 +121,13 @@ export class ContractInterface {
         const fullFunctionName = `${this.address}::${this.module}::${functionName}`;
 
         try {
+            // Format payload for AIP-62 wallet standard
             const result = await adapter.signAndSubmitTransaction({
-                type: 'entry_function_payload',
-                function: fullFunctionName,
-                type_arguments: typeArgs,
-                arguments: args,
+                payload: {
+                    function: fullFunctionName,
+                    typeArguments: typeArgs,
+                    functionArguments: args,
+                },
             });
 
             return result.hash;
@@ -115,16 +138,19 @@ export class ContractInterface {
 
     /**
      * Checks if a resource exists at the contract address
-     * @param resourceType - Full resource type (e.g., '0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>')
+     * @param resourceType - Full resource type
      * @returns true if resource exists
+     * 
+     * @example
+     * ```typescript
+     * const hasCoin = await contract.hasResource('0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>');
+     * ```
      */
     async hasResource(resourceType: string): Promise<boolean> {
         try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const client = this.aptosClient as any;
-            await client.getAccountResource({
+            await this.aptosClient.getAccountResource({
                 accountAddress: this.address,
-                resourceType,
+                resourceType: resourceType as `${string}::${string}::${string}`,
             });
             return true;
         } catch {
@@ -136,14 +162,19 @@ export class ContractInterface {
      * Gets a resource from the contract address
      * @param resourceType - Full resource type
      * @returns Resource data or null if not found
+     * 
+     * @example
+     * ```typescript
+     * const coinStore = await contract.getResource<{ coin: { value: string } }>(
+     *   '0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>'
+     * );
+     * ```
      */
     async getResource<T = unknown>(resourceType: string): Promise<T | null> {
         try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const client = this.aptosClient as any;
-            const resource = await client.getAccountResource({
+            const resource = await this.aptosClient.getAccountResource({
                 accountAddress: this.address,
-                resourceType,
+                resourceType: resourceType as `${string}::${string}::${string}`,
             });
             return resource as T;
         } catch {

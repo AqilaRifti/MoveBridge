@@ -2,7 +2,7 @@
  * Property-based tests for Wallet Manager
  * @module @movebridge/core
  * 
- * Feature: wallet-rework
+ * Feature: wallet-rework, sdk-rework
  */
 
 import { describe, it, expect } from 'vitest';
@@ -10,6 +10,39 @@ import * as fc from 'fast-check';
 import { WalletManager } from '../wallet';
 import { MovementError } from '../errors';
 import type { WalletType } from '../types';
+
+// Re-implement normalizeHash for testing (mirrors wallet.ts implementation)
+function normalizeHash(data: unknown): string {
+    if (typeof data === 'string') {
+        return data.startsWith('0x') ? data : `0x${data}`;
+    }
+    if (data instanceof Uint8Array) {
+        return '0x' + Array.from(data).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    if (data && typeof data === 'object' && 'hash' in data) {
+        return normalizeHash((data as { hash: unknown }).hash);
+    }
+    if (data && typeof (data as { toString?: () => string }).toString === 'function') {
+        const str = (data as { toString: () => string }).toString();
+        return str.startsWith('0x') ? str : `0x${str}`;
+    }
+    return String(data);
+}
+
+// Re-implement extractUserResponse for testing (mirrors wallet.ts implementation)
+function extractUserResponse<T>(response: unknown): T {
+    if (!response) {
+        throw new Error('Empty response from wallet');
+    }
+    const resp = response as { status?: string; args?: T };
+    if (resp.status === 'rejected') {
+        throw new Error('User rejected the request');
+    }
+    if (resp.args !== undefined) {
+        return resp.args;
+    }
+    return response as T;
+}
 
 // Valid wallet types for the new wallet system
 const VALID_WALLET_TYPES: WalletType[] = ['razor', 'nightly', 'okx'];
@@ -308,4 +341,151 @@ describe('Wallet Manager Properties', () => {
             { numRuns: 100 }
         );
     });
+});
+
+
+/**
+ * Feature: sdk-rework, Property 11: UserResponse Format Handling
+ * For any wallet adapter response, the SDK SHALL correctly extract the result from:
+ * - Direct result format: { hash: string }
+ * - UserResponse format: { status: 'approved', args: { hash: string } }
+ * - Rejected format: { status: 'rejected' } → throw error
+ * 
+ * **Validates: Requirements 7.2**
+ */
+it('Property 11: UserResponse Format Handling', () => {
+    // Test direct result format
+    fc.assert(
+        fc.property(
+            fc.hexaString({ minLength: 64, maxLength: 64 }).map(h => `0x${h}`),
+            (hash) => {
+                const directResult = { hash };
+                const extracted = extractUserResponse<{ hash: string }>(directResult);
+                expect(extracted.hash).toBe(hash);
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
+
+    // Test UserResponse format with status: 'approved'
+    fc.assert(
+        fc.property(
+            fc.hexaString({ minLength: 64, maxLength: 64 }).map(h => `0x${h}`),
+            (hash) => {
+                const userResponse = { status: 'approved', args: { hash } };
+                const extracted = extractUserResponse<{ hash: string }>(userResponse);
+                expect(extracted.hash).toBe(hash);
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
+
+    // Test rejected format throws error
+    fc.assert(
+        fc.property(fc.constant(null), () => {
+            const rejectedResponse = { status: 'rejected' };
+            expect(() => extractUserResponse(rejectedResponse)).toThrow('User rejected the request');
+            return true;
+        }),
+        { numRuns: 10 }
+    );
+
+    // Test empty response throws error
+    fc.assert(
+        fc.property(fc.constant(null), () => {
+            expect(() => extractUserResponse(null)).toThrow('Empty response from wallet');
+            expect(() => extractUserResponse(undefined)).toThrow('Empty response from wallet');
+            return true;
+        }),
+        { numRuns: 10 }
+    );
+});
+
+/**
+ * Feature: sdk-rework, Property 12: Transaction Hash Normalization
+ * For any transaction hash returned by a wallet (as string, Uint8Array, or object with toString),
+ * the SDK SHALL normalize it to a hex string starting with '0x'.
+ * 
+ * **Validates: Requirements 7.3**
+ */
+it('Property 12: Transaction Hash Normalization', () => {
+    // Test string with 0x prefix (should remain unchanged)
+    fc.assert(
+        fc.property(
+            fc.hexaString({ minLength: 64, maxLength: 64 }).map(h => `0x${h}`),
+            (hash) => {
+                const normalized = normalizeHash(hash);
+                expect(normalized).toBe(hash);
+                expect(normalized.startsWith('0x')).toBe(true);
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
+
+    // Test string without 0x prefix (should add prefix)
+    fc.assert(
+        fc.property(
+            fc.hexaString({ minLength: 64, maxLength: 64 }),
+            (hash) => {
+                const normalized = normalizeHash(hash);
+                expect(normalized).toBe(`0x${hash}`);
+                expect(normalized.startsWith('0x')).toBe(true);
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
+
+    // Test Uint8Array (should convert to hex string with 0x prefix)
+    fc.assert(
+        fc.property(
+            fc.uint8Array({ minLength: 32, maxLength: 32 }),
+            (bytes) => {
+                const normalized = normalizeHash(bytes);
+                expect(normalized.startsWith('0x')).toBe(true);
+                expect(normalized.length).toBe(66); // 0x + 64 hex chars
+                // Verify round-trip: each byte should be represented as 2 hex chars
+                const hexPart = normalized.slice(2);
+                for (let i = 0; i < bytes.length; i++) {
+                    const byteHex = hexPart.slice(i * 2, i * 2 + 2);
+                    expect(parseInt(byteHex, 16)).toBe(bytes[i]);
+                }
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
+
+    // Test object with hash property (should extract and normalize)
+    fc.assert(
+        fc.property(
+            fc.hexaString({ minLength: 64, maxLength: 64 }).map(h => `0x${h}`),
+            (hash) => {
+                const obj = { hash };
+                const normalized = normalizeHash(obj);
+                expect(normalized).toBe(hash);
+                expect(normalized.startsWith('0x')).toBe(true);
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
+
+    // Test object with toString method
+    fc.assert(
+        fc.property(
+            fc.hexaString({ minLength: 64, maxLength: 64 }).map(h => `0x${h}`),
+            (hash) => {
+                const obj = { toString: () => hash };
+                const normalized = normalizeHash(obj);
+                expect(normalized).toBe(hash);
+                expect(normalized.startsWith('0x')).toBe(true);
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
 });

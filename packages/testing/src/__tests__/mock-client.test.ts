@@ -44,7 +44,11 @@ describe('Mock Client', () => {
                 hash: '0xabc123',
                 sender: '0x1',
                 sequenceNumber: '1',
-                payload: { type: 'entry_function_payload' },
+                payload: {
+                    function: '0x1::test::func',
+                    typeArguments: [],
+                    functionArguments: [],
+                },
                 timestamp: '1234567890',
             };
             client.mockResponse('getTransaction', mockTx);

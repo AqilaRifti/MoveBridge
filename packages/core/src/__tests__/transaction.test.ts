@@ -7,11 +7,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TransactionBuilder } from '../transaction';
 import { WalletManager } from '../wallet';
 import { MovementError } from '../errors';
-import { DEFAULT_COIN_TYPE } from '../config';
 
 // Mock Aptos client
 const mockAptosClient = {
     transaction: {
+        build: {
+            simple: vi.fn(),
+        },
         simulate: {
             simple: vi.fn(),
         },
@@ -29,28 +31,16 @@ describe('TransactionBuilder', () => {
     });
 
     describe('transfer', () => {
-        it('should build transfer payload with default coin type', async () => {
+        it('should build transfer payload using aptos_account::transfer', async () => {
             const payload = await transactionBuilder.transfer({
                 to: '0x123',
                 amount: '1000000',
             });
 
-            expect(payload.type).toBe('entry_function_payload');
-            expect(payload.function).toBe('0x1::coin::transfer');
-            expect(payload.typeArguments).toEqual([DEFAULT_COIN_TYPE]);
-            expect(payload.arguments).toEqual(['0x123', '1000000']);
-        });
-
-        it('should build transfer payload with custom coin type', async () => {
-            const customCoinType = '0x1::custom_coin::CustomCoin';
-            const payload = await transactionBuilder.transfer({
-                to: '0x456',
-                amount: '2000000',
-                coinType: customCoinType,
-            });
-
-            expect(payload.typeArguments).toEqual([customCoinType]);
-            expect(payload.arguments).toEqual(['0x456', '2000000']);
+            // New format uses aptos_account::transfer (no coin type needed)
+            expect(payload.function).toBe('0x1::aptos_account::transfer');
+            expect(payload.typeArguments).toEqual([]);
+            expect(payload.functionArguments).toEqual(['0x123', '1000000']);
         });
 
         it('should preserve amount as string', async () => {
@@ -59,8 +49,8 @@ describe('TransactionBuilder', () => {
                 amount: '999999999999999999',
             });
 
-            expect(payload.arguments[1]).toBe('999999999999999999');
-            expect(typeof payload.arguments[1]).toBe('string');
+            expect(payload.functionArguments[1]).toBe('999999999999999999');
+            expect(typeof payload.functionArguments[1]).toBe('string');
         });
     });
 
@@ -72,10 +62,9 @@ describe('TransactionBuilder', () => {
                 arguments: [],
             });
 
-            expect(payload.type).toBe('entry_function_payload');
             expect(payload.function).toBe('0x1::counter::increment');
             expect(payload.typeArguments).toEqual([]);
-            expect(payload.arguments).toEqual([]);
+            expect(payload.functionArguments).toEqual([]);
         });
 
         it('should include type arguments', async () => {
@@ -88,7 +77,7 @@ describe('TransactionBuilder', () => {
             expect(payload.typeArguments).toEqual(['0x1::aptos_coin::AptosCoin']);
         });
 
-        it('should include all arguments', async () => {
+        it('should include all arguments as functionArguments', async () => {
             const args = ['0x123', '1000', true, [1, 2, 3]];
             const payload = await transactionBuilder.build({
                 function: '0x1::test::func',
@@ -96,42 +85,7 @@ describe('TransactionBuilder', () => {
                 arguments: args,
             });
 
-            expect(payload.arguments).toEqual(args);
-        });
-    });
-
-    describe('sign', () => {
-        it('should throw WALLET_NOT_CONNECTED when no wallet is connected', async () => {
-            const payload = await transactionBuilder.build({
-                function: '0x1::test::func',
-                typeArguments: [],
-                arguments: [],
-            });
-
-            await expect(transactionBuilder.sign(payload)).rejects.toThrow(MovementError);
-            await expect(transactionBuilder.sign(payload)).rejects.toMatchObject({
-                code: 'WALLET_NOT_CONNECTED',
-            });
-        });
-    });
-
-    describe('submit', () => {
-        it('should throw WALLET_NOT_CONNECTED when no wallet is connected', async () => {
-            const signedTx = {
-                payload: {
-                    type: 'entry_function_payload' as const,
-                    function: '0x1::test::func',
-                    typeArguments: [],
-                    arguments: [],
-                },
-                signature: '0x123',
-                sender: '0x456',
-            };
-
-            await expect(transactionBuilder.submit(signedTx)).rejects.toThrow(MovementError);
-            await expect(transactionBuilder.submit(signedTx)).rejects.toMatchObject({
-                code: 'WALLET_NOT_CONNECTED',
-            });
+            expect(payload.functionArguments).toEqual(args);
         });
     });
 
@@ -160,6 +114,25 @@ describe('TransactionBuilder', () => {
 
             await expect(transactionBuilder.simulate(payload)).rejects.toThrow(MovementError);
             await expect(transactionBuilder.simulate(payload)).rejects.toMatchObject({
+                code: 'WALLET_NOT_CONNECTED',
+            });
+        });
+    });
+
+    describe('transferAndSubmit', () => {
+        it('should throw WALLET_NOT_CONNECTED when no wallet is connected', async () => {
+            await expect(
+                transactionBuilder.transferAndSubmit({
+                    to: '0x123',
+                    amount: '1000000',
+                })
+            ).rejects.toThrow(MovementError);
+            await expect(
+                transactionBuilder.transferAndSubmit({
+                    to: '0x123',
+                    amount: '1000000',
+                })
+            ).rejects.toMatchObject({
                 code: 'WALLET_NOT_CONNECTED',
             });
         });

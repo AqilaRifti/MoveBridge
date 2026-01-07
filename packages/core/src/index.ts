@@ -60,4 +60,8 @@ export type {
     BuildOptions,
     ContractOptions,
     EventSubscription,
+    LegacyEventSubscription,
 } from './types';
+
+// Re-export event types from events module
+export type { EventSubscriptionConfig } from './events';

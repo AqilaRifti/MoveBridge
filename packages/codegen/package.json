@@ -1,6 +1,6 @@
 {
     "name": "@movebridge/codegen",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Code generation tool for type-safe Movement contract interactions",
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",

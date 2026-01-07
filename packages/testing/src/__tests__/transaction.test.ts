@@ -191,26 +191,14 @@ describe('Transaction Validator', () => {
     describe('validatePayload', () => {
         const validFunction = '0x' + 'a'.repeat(64) + '::module::function';
 
-        it('should accept valid entry_function_payload', () => {
+        it('should accept valid transaction payload', () => {
             expect(
                 validatePayload({
-                    type: 'entry_function_payload',
                     function: validFunction,
                     typeArguments: [],
-                    arguments: [],
+                    functionArguments: [],
                 })
             ).toBe(true);
-        });
-
-        it('should reject unsupported payload type', () => {
-            expect(() =>
-                validatePayload({
-                    type: 'script_payload' as 'entry_function_payload',
-                    function: validFunction,
-                    typeArguments: [],
-                    arguments: [],
-                })
-            ).toThrow(MovementError);
         });
 
         it('should reject null payload', () => {
@@ -224,10 +212,9 @@ describe('Transaction Validator', () => {
         it('should validate function format in payload', () => {
             expect(() =>
                 validatePayload({
-                    type: 'entry_function_payload',
                     function: 'invalid',
                     typeArguments: [],
-                    arguments: [],
+                    functionArguments: [],
                 })
             ).toThrow(MovementError);
         });
