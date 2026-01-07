@@ -45,7 +45,7 @@ export interface ResolvedConfig {
  * const balance = await movement.getAccountBalance('0x1');
  *
  * // Connect wallet
- * await movement.wallet.connect('petra');
+ * await movement.wallet.connect('razor');
  * ```
  */
 export class Movement {

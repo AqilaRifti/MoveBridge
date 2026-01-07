@@ -45,7 +45,7 @@ module 0x123::counter {
 import { Movement } from '@movebridge/core';
 
 const movement = new Movement({ network: 'testnet' });
-await movement.wallet.connect('petra');
+await movement.wallet.connect('razor');
 
 const CONTRACT_ADDRESS = '0x123...';
 
@@ -84,7 +84,7 @@ await movement.waitForTransaction(setTxHash);
 import { Movement } from '@movebridge/core';
 
 const movement = new Movement({ network: 'testnet' });
-await movement.wallet.connect('petra');
+await movement.wallet.connect('razor');
 
 const coin = movement.contract({
   address: '0x1',

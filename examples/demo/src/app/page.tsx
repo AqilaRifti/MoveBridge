@@ -77,19 +77,19 @@ function WelcomeSection({
                 <p className="text-sm text-slate-500 mb-4">Supported Wallets (Movement Network)</p>
                 <div className="flex justify-center gap-4 flex-wrap">
                     {[
-                        { id: 'petra', name: 'Petra', url: 'https://petra.app/' },
-                        { id: 'pontem', name: 'Pontem', url: 'https://pontem.network/pontem-wallet' },
+                        { id: 'razor', name: 'Razor Wallet', url: 'https://razorwallet.xyz/' },
                         { id: 'nightly', name: 'Nightly', url: 'https://nightly.app/' },
+                        { id: 'okx', name: 'OKX Wallet', url: 'https://www.okx.com/web3' },
                     ].map((w) => (
                         <div
                             key={w.id}
-                            className={`px-4 py-2 rounded-lg border ${wallets.includes(w.id as 'petra' | 'pontem' | 'nightly')
+                            className={`px-4 py-2 rounded-lg border ${wallets.includes(w.id as 'razor' | 'nightly' | 'okx')
                                 ? 'border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-400'
                                 : 'border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800'
                                 }`}
                         >
                             <span>{w.name}</span>
-                            {wallets.includes(w.id as 'petra' | 'pontem' | 'nightly') ? (
+                            {wallets.includes(w.id as 'razor' | 'nightly' | 'okx') ? (
                                 <span className="ml-2 text-xs">✓ Detected</span>
                             ) : (
                                 <a
@@ -239,7 +239,7 @@ function App() {
                     <h3 className="font-medium mb-3">What&apos;s Included</h3>
                     <ul className="space-y-3">
                         {[
-                            { icon: '✅', text: 'Multi-wallet support (Petra, Pontem, Nightly)' },
+                            { icon: '✅', text: 'Multi-wallet support (Razor, Nightly, OKX)' },
                             { icon: '✅', text: 'Type-safe transaction building' },
                             { icon: '✅', text: 'React hooks for all operations' },
                             { icon: '✅', text: 'Pre-built UI components' },

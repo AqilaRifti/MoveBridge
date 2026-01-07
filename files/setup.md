@@ -25,9 +25,9 @@ Complete guide to setting up MoveBridge SDK in your project.
 - Edge 90+
 
 ### Wallet Extensions (for testing)
-- [Petra Wallet](https://petra.app/)
-- [Pontem Wallet](https://pontem.network/pontem-wallet)
+- [Razor Wallet](https://razorwallet.xyz/)
 - [Nightly Wallet](https://nightly.app/)
+- [OKX Wallet](https://www.okx.com/web3)
 
 ---
 
@@ -83,7 +83,7 @@ export const movement = new Movement({
 // Usage
 async function main() {
   // Connect wallet
-  await movement.wallet.connect('petra');
+  await movement.wallet.connect('razor');
   
   // Get balance
   const address = movement.wallet.getState().address!;
@@ -386,7 +386,7 @@ console.log('SDK initialized:', movement.config);
 ```typescript
 const wallets = movement.wallet.detectWallets();
 console.log('Available wallets:', wallets);
-// Should print: ['petra'] or similar
+// Should print: ['razor'] or similar
 ```
 
 ### Test Network Connection

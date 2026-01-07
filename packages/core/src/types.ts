@@ -6,7 +6,19 @@
 export type NetworkType = 'mainnet' | 'testnet';
 
 /** Supported wallet types for Movement Network */
-export type WalletType = 'petra' | 'pontem' | 'nightly';
+export type WalletType = 'razor' | 'nightly' | 'okx';
+
+/** Wallet information for display */
+export interface WalletInfo {
+    /** Wallet type identifier */
+    type: WalletType;
+    /** Display name of the wallet */
+    name: string;
+    /** Icon URL or data URI for the wallet */
+    icon: string;
+    /** Whether the wallet is currently installed/available */
+    installed: boolean;
+}
 
 /** Configuration options for Movement client */
 export interface MovementConfig {

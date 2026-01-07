@@ -53,7 +53,7 @@ const wallets = movement.wallet.detectWallets();
 console.log('Available wallets:', wallets);
 
 // Connect to a wallet
-await movement.wallet.connect('petra');
+await movement.wallet.connect('razor');
 
 // Get the connected address
 const state = movement.wallet.getState();
@@ -151,8 +151,8 @@ MoveBridge supports the following wallets out of the box:
 
 | Wallet | Type | Install |
 |--------|------|---------|
-| [Petra](https://petra.app/) | `petra` | Browser extension |
-| [Pontem](https://pontem.network/) | `pontem` | Browser extension |
+| [Razor](https://razorwallet.xyz/) | `razor` | Browser extension |
+| [OKX](https://www.okx.com/web3/) | `okx` | Browser extension |
 | [Nightly](https://nightly.app/) | `nightly` | Browser extension |
 
 All wallets are detected automatically using the [Aptos Wallet Standard (AIP-62)](https://github.com/aptos-foundation/AIPs/blob/main/aips/aip-62.md).

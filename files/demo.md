@@ -166,7 +166,7 @@ movement.events.unsubscribeAll();
 ### Scenario 1: First-Time User
 1. Open dashboard
 2. See wallet detection
-3. Connect Petra wallet
+3. Connect Razor wallet
 4. View balance
 5. Explore features
 
@@ -212,7 +212,7 @@ Get testnet MOVE from the faucet:
 ### Common Issues
 
 **"Wallet not found"**
-- Install Petra, Pontem, or Nightly extension
+- Install Razor, Nightly, or OKX extension
 - Refresh the page
 
 **"Transaction failed"**

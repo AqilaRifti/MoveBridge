@@ -60,7 +60,7 @@ const result = await contract.view('calculate', [
 Entry functions modify state and require a connected wallet:
 
 ```typescript
-await movement.wallet.connect('petra');
+await movement.wallet.connect('razor');
 
 // Call an entry function
 const txHash = await contract.call('increment', []);
@@ -240,7 +240,7 @@ const count = await counter.view<number>('get_count', []);
 console.log('Current count:', count);
 
 // Connect wallet for write operations
-await movement.wallet.connect('petra');
+await movement.wallet.connect('razor');
 
 // Increment the counter
 const txHash = await counter.call('increment', []);

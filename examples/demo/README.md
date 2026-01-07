@@ -15,7 +15,7 @@ Interactive demo application showcasing the MoveBridge SDK for Movement Network.
 
 - Node.js 18+
 - pnpm
-- A Movement-compatible wallet (Petra, Pontem, or Nightly)
+- A Movement-compatible wallet (Razor, Nightly, or OKX)
 
 ### Installation
 

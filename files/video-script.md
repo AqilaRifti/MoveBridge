@@ -68,7 +68,7 @@ function App() {
 ### Script
 > "Let's see it in action. Here's our demo app. I click connect..."
 
-> "The SDK automatically detects installed wallets. I'll connect with Petra..."
+> "The SDK automatically detects installed wallets. I'll connect with Razor..."
 
 > "And we're connected. The address is displayed, balance is fetched automatically. All with one hook."
 
@@ -223,7 +223,7 @@ npm install @movebridge/core @movebridge/react
 ## B-ROLL SUGGESTIONS
 
 1. **Code typing** - Fast typing of SDK code
-2. **Wallet popup** - Petra/Pontem connection flow
+2. **Wallet popup** - Razor/Nightly/OKX connection flow
 3. **Transaction animation** - Block confirmation visual
 4. **Test runner** - Green checkmarks appearing
 5. **IDE autocomplete** - TypeScript suggestions dropdown

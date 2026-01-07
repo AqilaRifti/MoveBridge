@@ -16,7 +16,7 @@ import { useWaitForTransaction } from '../hooks/useWaitForTransaction';
 vi.mock('@movebridge/core', () => ({
     Movement: vi.fn().mockImplementation(() => ({
         wallet: {
-            detectWallets: vi.fn().mockReturnValue(['petra', 'pontem']),
+            detectWallets: vi.fn().mockReturnValue(['razor', 'nightly']),
             connect: vi.fn().mockResolvedValue(undefined),
             disconnect: vi.fn().mockResolvedValue(undefined),
             getState: vi.fn().mockReturnValue({ connected: false, address: null, publicKey: null }),
@@ -72,7 +72,7 @@ describe('useMovement', () => {
                 address: null,
                 connected: false,
                 connecting: false,
-                wallets: ['petra', 'pontem'],
+                wallets: ['razor', 'nightly'],
                 wallet: null,
                 connect: vi.fn(),
                 disconnect: vi.fn(),
@@ -82,7 +82,7 @@ describe('useMovement', () => {
         expect(result.current.address).toBeNull();
         expect(result.current.connected).toBe(false);
         expect(result.current.connecting).toBe(false);
-        expect(result.current.wallets).toEqual(['petra', 'pontem']);
+        expect(result.current.wallets).toEqual(['razor', 'nightly']);
         expect(result.current.wallet).toBeNull();
     });
 
@@ -94,8 +94,8 @@ describe('useMovement', () => {
                 address: '0x123',
                 connected: true,
                 connecting: false,
-                wallets: ['petra'],
-                wallet: 'petra',
+                wallets: ['razor'],
+                wallet: 'razor',
                 connect: vi.fn(),
                 disconnect: vi.fn(),
             }),
@@ -103,7 +103,7 @@ describe('useMovement', () => {
 
         expect(result.current.address).toBe('0x123');
         expect(result.current.connected).toBe(true);
-        expect(result.current.wallet).toBe('petra');
+        expect(result.current.wallet).toBe('razor');
     });
 
     it('should provide connect function', () => {
@@ -115,7 +115,7 @@ describe('useMovement', () => {
                 address: null,
                 connected: false,
                 connecting: false,
-                wallets: ['petra'],
+                wallets: ['razor'],
                 wallet: null,
                 connect: mockConnect,
                 disconnect: vi.fn(),
@@ -134,8 +134,8 @@ describe('useMovement', () => {
                 address: '0x123',
                 connected: true,
                 connecting: false,
-                wallets: ['petra'],
-                wallet: 'petra',
+                wallets: ['razor'],
+                wallet: 'razor',
                 connect: vi.fn(),
                 disconnect: mockDisconnect,
             }),
@@ -165,7 +165,7 @@ describe('useBalance', () => {
                 connected: true,
                 connecting: false,
                 wallets: [],
-                wallet: 'petra',
+                wallet: 'razor',
                 connect: vi.fn(),
                 disconnect: vi.fn(),
             }),
@@ -191,7 +191,7 @@ describe('useBalance', () => {
                 connected: true,
                 connecting: false,
                 wallets: [],
-                wallet: 'petra',
+                wallet: 'razor',
                 connect: vi.fn(),
                 disconnect: vi.fn(),
             }),
@@ -219,7 +219,7 @@ describe('useBalance', () => {
                 connected: true,
                 connecting: false,
                 wallets: [],
-                wallet: 'petra',
+                wallet: 'razor',
                 connect: vi.fn(),
                 disconnect: vi.fn(),
             }),
@@ -247,7 +247,7 @@ describe('useBalance', () => {
                 connected: true,
                 connecting: false,
                 wallets: [],
-                wallet: 'petra',
+                wallet: 'razor',
                 connect: vi.fn(),
                 disconnect: vi.fn(),
             }),
@@ -280,7 +280,7 @@ describe('useContract', () => {
                 connected: true,
                 connecting: false,
                 wallets: [],
-                wallet: 'petra',
+                wallet: 'razor',
                 connect: vi.fn(),
                 disconnect: vi.fn(),
             }),
@@ -311,7 +311,7 @@ describe('useContract', () => {
                 connected: true,
                 connecting: false,
                 wallets: [],
-                wallet: 'petra',
+                wallet: 'razor',
                 connect: vi.fn(),
                 disconnect: vi.fn(),
             }),
@@ -342,7 +342,7 @@ describe('useContract', () => {
                 connected: true,
                 connecting: false,
                 wallets: [],
-                wallet: 'petra',
+                wallet: 'razor',
                 connect: vi.fn(),
                 disconnect: vi.fn(),
             }),
@@ -373,7 +373,7 @@ describe('useTransaction', () => {
                 connected: true,
                 connecting: false,
                 wallets: [],
-                wallet: 'petra',
+                wallet: 'razor',
                 connect: vi.fn(),
                 disconnect: vi.fn(),
             }),
@@ -402,7 +402,7 @@ describe('useTransaction', () => {
                 connected: true,
                 connecting: false,
                 wallets: [],
-                wallet: 'petra',
+                wallet: 'razor',
                 connect: vi.fn(),
                 disconnect: vi.fn(),
             }),
@@ -443,7 +443,7 @@ describe('useWaitForTransaction', () => {
                 connected: true,
                 connecting: false,
                 wallets: [],
-                wallet: 'petra',
+                wallet: 'razor',
                 connect: vi.fn(),
                 disconnect: vi.fn(),
             }),
@@ -468,7 +468,7 @@ describe('useWaitForTransaction', () => {
                 connected: true,
                 connecting: false,
                 wallets: [],
-                wallet: 'petra',
+                wallet: 'razor',
                 connect: vi.fn(),
                 disconnect: vi.fn(),
             }),

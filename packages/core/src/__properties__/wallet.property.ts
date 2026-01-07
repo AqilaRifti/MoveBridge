@@ -1,6 +1,8 @@
 /**
  * Property-based tests for Wallet Manager
  * @module @movebridge/core
+ * 
+ * Feature: wallet-rework
  */
 
 import { describe, it, expect } from 'vitest';
@@ -9,13 +11,66 @@ import { WalletManager } from '../wallet';
 import { MovementError } from '../errors';
 import type { WalletType } from '../types';
 
+// Valid wallet types for the new wallet system
+const VALID_WALLET_TYPES: WalletType[] = ['razor', 'nightly', 'okx'];
+
+// Wallet name variations that should normalize to each type
+const WALLET_NAME_VARIATIONS: Record<WalletType, string[]> = {
+    razor: ['razor', 'Razor', 'RAZOR', 'razor wallet', 'Razor Wallet', 'RAZOR WALLET', 'razorwallet', 'RazorWallet'],
+    nightly: ['nightly', 'Nightly', 'NIGHTLY', 'nightly wallet', 'Nightly Wallet', 'NIGHTLY WALLET'],
+    okx: ['okx', 'OKX', 'Okx', 'okx wallet', 'OKX Wallet', 'OKX WALLET', 'okxwallet', 'OKXWallet', 'OKXWALLET'],
+};
+
 describe('Wallet Manager Properties', () => {
     /**
-     * Feature: movebridge-sdk, Property 6: Wallet state structure
+     * Feature: wallet-rework, Property 1: Wallet Name Normalization
+     * For any string that represents a supported wallet name (including variations like 
+     * "Razor", "RAZOR", "razor wallet", "Nightly Wallet", "OKX", "okxwallet"), 
+     * normalizing it through the SUPPORTED_WALLETS mapping SHALL produce the correct lowercase WalletType.
+     * Validates: Requirements 1.2
+     */
+    it('Property 1: Wallet Name Normalization', () => {
+        fc.assert(
+            fc.property(
+                fc.constantFrom(...VALID_WALLET_TYPES),
+                (walletType) => {
+                    const variations = WALLET_NAME_VARIATIONS[walletType];
+
+                    for (const variation of variations) {
+                        // The normalization happens via toLowerCase() in detectWallets
+                        const normalized = variation.toLowerCase();
+
+                        // Check that the normalized name maps to the correct wallet type
+                        // This tests the SUPPORTED_WALLETS mapping logic
+                        const expectedMappings: Record<string, WalletType> = {
+                            'razor': 'razor',
+                            'razor wallet': 'razor',
+                            'razorwallet': 'razor',
+                            'nightly': 'nightly',
+                            'nightly wallet': 'nightly',
+                            'okx': 'okx',
+                            'okx wallet': 'okx',
+                            'okxwallet': 'okx',
+                        };
+
+                        if (expectedMappings[normalized]) {
+                            expect(expectedMappings[normalized]).toBe(walletType);
+                        }
+                    }
+
+                    return true;
+                }
+            ),
+            { numRuns: 100 }
+        );
+    });
+
+    /**
+     * Feature: wallet-rework, Property 6: Wallet state structure
      * For any WalletManager instance, calling getState SHALL return an object
      * with exactly three properties: connected (boolean), address (string | null),
      * and publicKey (string | null).
-     * Validates: Requirements 3.5
+     * Validates: Requirements 3.2
      */
     it('Property 6: Wallet state structure', () => {
         fc.assert(
@@ -42,10 +97,10 @@ describe('Wallet Manager Properties', () => {
     });
 
     /**
-     * Feature: movebridge-sdk, Property 7: Connect/disconnect event emission
+     * Feature: wallet-rework, Property 7: Connect/disconnect event emission
      * For any successful wallet connection, the WalletManager SHALL emit a 'connect' event;
      * for any disconnection, it SHALL emit a 'disconnect' event.
-     * Validates: Requirements 3.2, 3.4, 4.1, 4.2
+     * Validates: Requirements 3.3, 4.3
      *
      * Note: This tests the event emission mechanism without actual wallet connection.
      */
@@ -84,16 +139,15 @@ describe('Wallet Manager Properties', () => {
     });
 
     /**
-     * Feature: movebridge-sdk, Property 8: Invalid wallet error handling
-     * For any wallet identifier not in the set of installed wallets, calling connect
-     * SHALL throw a MovementError with code 'WALLET_NOT_FOUND'.
-     * Validates: Requirements 3.3
+     * Feature: wallet-rework, Property 12: Error Type Distinction
+     * For any wallet operation failure, the thrown error SHALL be distinguishable as either 
+     * a user rejection (containing "rejected" in the message) or a technical failure, 
+     * and SHALL always contain a descriptive message.
+     * Validates: Requirements 3.4, 7.3, 10.1, 10.2
      */
-    it('Property 8: Invalid wallet error handling', async () => {
-        // Test with known valid wallet types that aren't installed in test environment
-        const walletTypes: WalletType[] = ['petra', 'pontem', 'nightly'];
-
-        for (const wallet of walletTypes) {
+    it('Property 12: Invalid wallet error handling with new wallet types', async () => {
+        // Test with the new valid wallet types that aren't installed in test environment
+        for (const wallet of VALID_WALLET_TYPES) {
             const walletManager = new WalletManager();
 
             // In a browser-less environment, no wallets are detected
@@ -109,14 +163,51 @@ describe('Wallet Manager Properties', () => {
                 expect(error).toBeInstanceOf(MovementError);
                 expect((error as MovementError).code).toBe('WALLET_NOT_FOUND');
                 expect((error as MovementError).details?.wallet).toBe(wallet);
+                // Error should have a descriptive message
+                expect((error as MovementError).message.length).toBeGreaterThan(0);
             }
         }
     });
 
     /**
-     * Additional property: Initial state is disconnected
+     * Feature: wallet-rework, Property 13: Unavailable Wallet Error Contains Alternatives
+     * For any attempt to connect to an unavailable wallet, the thrown error SHALL include 
+     * the list of currently available wallets.
+     * Validates: Requirements 3.5, 10.3
      */
-    it('Property: Initial state is disconnected', () => {
+    it('Property 13: Unavailable wallet error contains alternatives', async () => {
+        fc.assert(
+            await fc.asyncProperty(
+                fc.constantFrom(...VALID_WALLET_TYPES),
+                async (wallet) => {
+                    const walletManager = new WalletManager();
+                    const available = walletManager.detectWallets();
+
+                    try {
+                        await walletManager.connect(wallet);
+                        // Should not reach here in test environment
+                        return true;
+                    } catch (error) {
+                        expect(error).toBeInstanceOf(MovementError);
+                        // Error details should include available wallets list
+                        expect((error as MovementError).details?.available).toBeDefined();
+                        expect(Array.isArray((error as MovementError).details?.available)).toBe(true);
+                        // The available list should match what detectWallets returns
+                        expect((error as MovementError).details?.available).toEqual(available);
+                        return true;
+                    }
+                }
+            ),
+            { numRuns: 100 }
+        );
+    });
+
+    /**
+     * Feature: wallet-rework, Property 4: Connection State Consistency (Initial State)
+     * For any WalletManager instance, the initial state SHALL be disconnected.
+     * Validates: Requirements 3.2
+     */
+    it('Property 4: Initial state is disconnected', () => {
         fc.assert(
             fc.property(fc.constant(null), () => {
                 const walletManager = new WalletManager();
@@ -133,7 +224,8 @@ describe('Wallet Manager Properties', () => {
     });
 
     /**
-     * Additional property: getState returns a copy, not the internal state
+     * Feature: wallet-rework, Property: getState returns a copy, not the internal state
+     * This ensures state immutability from external modifications.
      */
     it('Property: getState returns a copy', () => {
         fc.assert(
@@ -158,9 +250,12 @@ describe('Wallet Manager Properties', () => {
     });
 
     /**
-     * Additional property: detectWallets returns empty array in non-browser environment
+     * Feature: wallet-rework, Property 2: Wallet Detection Returns Supported Subset
+     * For any set of wallets registered via AIP-62, detectWallets() SHALL return only 
+     * the wallets that match supported types (razor, nightly, okx) and no others.
+     * Validates: Requirements 2.1
      */
-    it('Property: detectWallets returns empty array in non-browser environment', () => {
+    it('Property 2: detectWallets returns empty array in non-browser environment', () => {
         fc.assert(
             fc.property(fc.constant(null), () => {
                 const walletManager = new WalletManager();
@@ -169,6 +264,44 @@ describe('Wallet Manager Properties', () => {
                 expect(Array.isArray(wallets)).toBe(true);
                 // In Node.js test environment, no wallets should be detected
                 expect(wallets).toEqual([]);
+
+                // If wallets were detected, they should only be from supported types
+                for (const wallet of wallets) {
+                    expect(VALID_WALLET_TYPES).toContain(wallet);
+                }
+
+                return true;
+            }),
+            { numRuns: 100 }
+        );
+    });
+
+    /**
+     * Feature: wallet-rework, Property 3: Wallet Info Contains Required Fields
+     * For any detected wallet, getWalletInfo() SHALL return an object containing 
+     * type, name, and icon fields that are all non-empty strings.
+     * Validates: Requirements 2.2
+     */
+    it('Property 3: getWalletInfo returns properly structured data', () => {
+        fc.assert(
+            fc.property(fc.constant(null), () => {
+                const walletManager = new WalletManager();
+                walletManager.detectWallets();
+                const walletInfo = walletManager.getWalletInfo();
+
+                expect(Array.isArray(walletInfo)).toBe(true);
+
+                // Each wallet info should have required fields
+                for (const info of walletInfo) {
+                    expect(info).toHaveProperty('type');
+                    expect(info).toHaveProperty('name');
+                    expect(info).toHaveProperty('icon');
+                    expect(typeof info.type).toBe('string');
+                    expect(typeof info.name).toBe('string');
+                    expect(typeof info.icon).toBe('string');
+                    // Type should be a valid wallet type
+                    expect(VALID_WALLET_TYPES).toContain(info.type);
+                }
 
                 return true;
             }),

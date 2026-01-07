@@ -135,12 +135,12 @@ movement.events.unsubscribe(subId);
 import { isMovementError } from '@movebridge/core';
 
 try {
-  await movement.wallet.connect('petra');
+  await movement.wallet.connect('razor');
 } catch (error) {
   if (isMovementError(error)) {
     switch (error.code) {
       case 'WALLET_NOT_FOUND':
-        console.log('Please install Petra wallet');
+        console.log('Please install Razor wallet');
         break;
       case 'WALLET_CONNECTION_FAILED':
         console.log('Connection rejected');

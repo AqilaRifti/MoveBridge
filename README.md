@@ -6,7 +6,7 @@ MoveBridge SDK is a comprehensive TypeScript SDK that simplifies frontend develo
 
 ## Features
 
-- ✅ **Unified wallet connection** - Support for Petra, Pontem, and Nightly wallets
+- ✅ **Unified wallet connection** - Support for Razor, Nightly, and OKX wallets
 - ✅ **Type-safe contract interactions** - Full TypeScript support with auto-generated types
 - ✅ **React hooks** - Easy integration with React applications
 - ✅ **Auto-generated types** - Generate TypeScript bindings from deployed Move modules
@@ -74,7 +74,7 @@ import { Movement } from '@movebridge/core';
 const movement = new Movement({ network: 'testnet' });
 
 // Connect wallet
-await movement.wallet.connect('petra');
+await movement.wallet.connect('razor');
 
 // Get balance
 const balance = await movement.getAccountBalance(movement.wallet.getState().address!);
@@ -266,7 +266,7 @@ All SDK errors are instances of `MovementError`:
 import { MovementError, isMovementError } from '@movebridge/core';
 
 try {
-  await movement.wallet.connect('petra');
+  await movement.wallet.connect('razor');
 } catch (error) {
   if (isMovementError(error)) {
     console.log('Code:', error.code);

@@ -11,7 +11,7 @@ TypeScript type definitions for @movebridge/core.
 ```typescript
 type NetworkType = 'mainnet' | 'testnet';
 
-type WalletType = 'petra' | 'pontem' | 'nightly';
+type WalletType = 'razor' | 'okx' | 'nightly';
 ```
 
 ## Configuration

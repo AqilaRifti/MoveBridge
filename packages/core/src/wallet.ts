@@ -23,12 +23,14 @@ interface UnifiedWalletAdapter {
 }
 
 const SUPPORTED_WALLETS: Record<string, WalletType> = {
-    'petra': 'petra',
-    'petra wallet': 'petra',
-    'pontem': 'pontem',
-    'pontem wallet': 'pontem',
+    'razor': 'razor',
+    'razor wallet': 'razor',
+    'razorwallet': 'razor',
     'nightly': 'nightly',
     'nightly wallet': 'nightly',
+    'okx': 'okx',
+    'okx wallet': 'okx',
+    'okxwallet': 'okx',
 };
 
 const STORAGE_KEY = 'movebridge:lastWallet';

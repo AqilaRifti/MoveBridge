@@ -34,14 +34,14 @@ detectWallets(): WalletType[]
 `WalletType[]` - Array of available wallet types
 
 ```typescript
-type WalletType = 'petra' | 'pontem' | 'nightly';
+type WalletType = 'razor' | 'okx' | 'nightly';
 ```
 
 #### Example
 
 ```typescript
 const wallets = movement.wallet.detectWallets();
-console.log('Available:', wallets); // ['petra', 'pontem']
+console.log('Available:', wallets); // ['razor', 'okx']
 ```
 
 ### getWalletInfo
@@ -60,7 +60,7 @@ Array of wallet info objects with type, display name, and icon URL.
 
 ```typescript
 const info = movement.wallet.getWalletInfo();
-// [{ type: 'petra', name: 'Petra Wallet', icon: 'data:image/...' }]
+// [{ type: 'razor', name: 'Razor Wallet', icon: 'data:image/...' }]
 ```
 
 ### connect
@@ -86,11 +86,11 @@ connect(wallet: WalletType): Promise<void>
 
 ```typescript
 try {
-  await movement.wallet.connect('petra');
+  await movement.wallet.connect('razor');
   console.log('Connected!');
 } catch (error) {
   if (error.code === 'WALLET_NOT_FOUND') {
-    console.log('Please install Petra wallet');
+    console.log('Please install Razor wallet');
   }
 }
 ```
@@ -152,7 +152,7 @@ getWallet(): WalletType | null
 
 ```typescript
 const wallet = movement.wallet.getWallet();
-console.log('Connected to:', wallet); // 'petra' or null
+console.log('Connected to:', wallet); // 'razor' or null
 ```
 
 ### autoConnect
@@ -282,8 +282,8 @@ movement.wallet.on('accountChanged', (newAddress) => {
 
 // Detect and connect
 const wallets = movement.wallet.detectWallets();
-if (wallets.includes('petra')) {
-  await movement.wallet.connect('petra');
+if (wallets.includes('razor')) {
+  await movement.wallet.connect('razor');
 }
 
 // Check state

@@ -51,7 +51,7 @@ Use `isMovementError` to check if an error is a MovementError:
 import { isMovementError } from '@movebridge/core';
 
 try {
-  await movement.wallet.connect('petra');
+  await movement.wallet.connect('razor');
 } catch (error) {
   if (isMovementError(error)) {
     // TypeScript knows error is MovementError
@@ -70,7 +70,7 @@ try {
 
 ```typescript
 try {
-  await movement.wallet.connect('petra');
+  await movement.wallet.connect('razor');
 } catch (error) {
   if (isMovementError(error)) {
     switch (error.code) {
@@ -223,10 +223,10 @@ Each error includes contextual details:
 // WALLET_NOT_FOUND
 {
   code: 'WALLET_NOT_FOUND',
-  message: 'Wallet "petra" not found. Available wallets: pontem, nightly',
+  message: 'Wallet "razor" not found. Available wallets: okx, nightly',
   details: {
-    wallet: 'petra',
-    available: ['pontem', 'nightly']
+    wallet: 'razor',
+    available: ['okx', 'nightly']
   }
 }
 

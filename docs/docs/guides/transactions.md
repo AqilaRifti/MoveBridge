@@ -18,7 +18,7 @@ The simplest transaction is a token transfer:
 import { Movement } from '@movebridge/core';
 
 const movement = new Movement({ network: 'testnet' });
-await movement.wallet.connect('petra');
+await movement.wallet.connect('razor');
 
 // Build a transfer transaction
 const payload = await movement.transaction.transfer({

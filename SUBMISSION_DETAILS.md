@@ -6,7 +6,7 @@ MoveBridge SDK is a comprehensive TypeScript SDK for Movement Network - essentia
 
 ### Packages Built
 
-1. **@movebridge/core** - Core SDK with wallet management (Petra, Pontem, Nightly), transaction building, contract interactions, and event subscriptions
+1. **@movebridge/core** - Core SDK with wallet management (Razor, Nightly, OKX), transaction building, contract interactions, and event subscriptions
 2. **@movebridge/react** - React hooks (`useMovement`, `useBalance`, `useContract`) and components (`ConnectButton`, `WalletModal`)
 3. **@movebridge/codegen** - CLI tool for generating TypeScript bindings from deployed Move modules
 4. **@movebridge/testing** - Testing utilities including mocks, fake data generators, validators, and transaction simulators

@@ -8,7 +8,7 @@ Learn how to connect, manage, and interact with wallets using MoveBridge.
 
 ## Overview
 
-MoveBridge provides a unified wallet interface that works with all supported wallets (Petra, Pontem, Nightly) through the Aptos Wallet Standard (AIP-62).
+MoveBridge provides a unified wallet interface that works with all supported wallets (Razor, OKX, Nightly) through the Aptos Wallet Standard (AIP-62).
 
 ## Detecting Wallets
 
@@ -21,11 +21,11 @@ const movement = new Movement({ network: 'testnet' });
 
 // Get list of available wallets
 const wallets = movement.wallet.detectWallets();
-console.log('Available:', wallets); // ['petra', 'pontem', 'nightly']
+console.log('Available:', wallets); // ['razor', 'okx', 'nightly']
 
 // Get detailed wallet info (name, icon)
 const walletInfo = movement.wallet.getWalletInfo();
-// [{ type: 'petra', name: 'Petra Wallet', icon: '...' }, ...]
+// [{ type: 'razor', name: 'Razor Wallet', icon: '...' }, ...]
 ```
 
 ## Connecting to a Wallet
@@ -33,11 +33,11 @@ const walletInfo = movement.wallet.getWalletInfo();
 ```typescript
 // Connect to a specific wallet
 try {
-  await movement.wallet.connect('petra');
+  await movement.wallet.connect('razor');
   console.log('Connected!');
 } catch (error) {
   if (error.code === 'WALLET_NOT_FOUND') {
-    console.log('Petra wallet is not installed');
+    console.log('Razor wallet is not installed');
   } else if (error.code === 'WALLET_CONNECTION_FAILED') {
     console.log('User rejected the connection');
   }
@@ -55,7 +55,7 @@ console.log('Public Key:', state.publicKey);
 
 // Get the current wallet type
 const walletType = movement.wallet.getWallet();
-console.log('Wallet:', walletType); // 'petra' | 'pontem' | 'nightly' | null
+console.log('Wallet:', walletType); // 'razor' | 'okx' | 'nightly' | null
 ```
 
 ## Disconnecting
@@ -185,7 +185,7 @@ Handle wallet-related errors:
 import { isMovementError } from '@movebridge/core';
 
 try {
-  await movement.wallet.connect('petra');
+  await movement.wallet.connect('razor');
 } catch (error) {
   if (isMovementError(error)) {
     switch (error.code) {

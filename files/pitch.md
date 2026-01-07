@@ -5,7 +5,7 @@
 Building on Movement Network today is harder than it needs to be.
 
 **Developers face:**
-- 🔧 **Wallet fragmentation** - Each wallet (Petra, Pontem, Nightly) has different APIs
+- 🔧 **Wallet fragmentation** - Each wallet (Razor, Nightly, OKX) has different APIs
 - 📝 **Boilerplate overload** - Repetitive code for connections, transactions, error handling
 - 🔍 **Type safety gaps** - Move contracts lack TypeScript bindings
 - ⏱️ **Slow iteration** - No testing utilities means slow feedback loops
@@ -27,7 +27,7 @@ One SDK that handles everything:
 // Before: 50+ lines of wallet connection code
 // After:
 const { connect, address, balance } = useMovement();
-await connect('petra');
+await connect('razor');
 ```
 
 ---
@@ -38,7 +38,7 @@ await connect('petra');
 Connect to any wallet with one API. Auto-reconnect, event handling, and state management included.
 
 ```typescript
-movement.wallet.connect('petra');  // or 'pontem', 'nightly'
+movement.wallet.connect('razor');  // or 'nightly', 'okx'
 movement.wallet.on('accountChanged', handleChange);
 ```
 

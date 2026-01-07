@@ -26,7 +26,7 @@ function createWrapper(contextValue: Partial<MovementContextValue>) {
         address: null,
         connected: false,
         connecting: false,
-        wallets: ['petra', 'martian', 'pontem'],
+        wallets: ['razor', 'nightly', 'okx'],
         wallet: null,
         connect: vi.fn(),
         disconnect: vi.fn(),
@@ -107,7 +107,7 @@ describe('WalletButton', () => {
 describe('WalletModal', () => {
     it('should render available wallets', () => {
         const Wrapper = createWrapper({
-            wallets: ['petra', 'pontem', 'nightly'],
+            wallets: ['razor', 'nightly', 'okx'],
         });
         render(
             <Wrapper>
@@ -115,14 +115,14 @@ describe('WalletModal', () => {
             </Wrapper>
         );
 
-        expect(screen.getByText(/petra/i)).toBeInTheDocument();
-        expect(screen.getByText(/pontem/i)).toBeInTheDocument();
-        expect(screen.getByText(/nightly/i)).toBeInTheDocument();
+        expect(screen.getByText('Razor Wallet')).toBeInTheDocument();
+        expect(screen.getByText('Nightly')).toBeInTheDocument();
+        expect(screen.getByText('OKX Wallet')).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
         const Wrapper = createWrapper({
-            wallets: ['petra'],
+            wallets: ['razor'],
         });
         render(
             <Wrapper>
@@ -130,14 +130,14 @@ describe('WalletModal', () => {
             </Wrapper>
         );
 
-        expect(screen.queryByText(/petra/i)).not.toBeInTheDocument();
+        expect(screen.queryByText('Razor Wallet')).not.toBeInTheDocument();
     });
 
     it('should call connect when wallet is clicked', async () => {
         const mockConnect = vi.fn().mockResolvedValue(undefined);
         const mockOnClose = vi.fn();
         const Wrapper = createWrapper({
-            wallets: ['petra'],
+            wallets: ['razor'],
             connect: mockConnect,
         });
 
@@ -147,10 +147,10 @@ describe('WalletModal', () => {
             </Wrapper>
         );
 
-        const petraButton = screen.getByText(/petra/i);
-        fireEvent.click(petraButton);
+        const razorButton = screen.getByText('Razor Wallet');
+        fireEvent.click(razorButton);
 
-        expect(mockConnect).toHaveBeenCalledWith('petra');
+        expect(mockConnect).toHaveBeenCalledWith('razor');
     });
 
     it('should show no wallets message when none available', () => {

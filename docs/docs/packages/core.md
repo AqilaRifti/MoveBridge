@@ -32,7 +32,7 @@ import { Movement } from '@movebridge/core';
 const movement = new Movement({ network: 'testnet' });
 
 // Connect wallet
-await movement.wallet.connect('petra');
+await movement.wallet.connect('razor');
 
 // Get balance
 const balance = await movement.getAccountBalance(
@@ -89,7 +89,7 @@ Handles wallet detection, connection, and state:
 const wallets = movement.wallet.detectWallets();
 
 // Connect
-await movement.wallet.connect('petra');
+await movement.wallet.connect('razor');
 
 // Get state
 const state = movement.wallet.getState();
@@ -185,11 +185,11 @@ All errors are `MovementError` instances:
 import { isMovementError, MovementError } from '@movebridge/core';
 
 try {
-  await movement.wallet.connect('petra');
+  await movement.wallet.connect('razor');
 } catch (error) {
   if (isMovementError(error)) {
     console.log(error.code);    // 'WALLET_NOT_FOUND'
-    console.log(error.details); // { wallet: 'petra', available: [...] }
+    console.log(error.details); // { wallet: 'razor', available: [...] }
   }
 }
 ```
