@@ -14,7 +14,7 @@ const vanillaCode = `import { Movement } from '@movebridge/core';
 const movement = new Movement({ network: 'testnet' });
 
 // Connect wallet
-await movement.wallet.connect('petra');
+await movement.wallet.connect('razor');
 
 // Get balance
 const balance = await movement.getAccountBalance(
@@ -112,7 +112,7 @@ const FeatureList: FeatureItem[] = [
     icon: '🔗',
     description: (
       <>
-        Connect to Petra, Pontem, and Nightly wallets with a single, unified API.
+        Connect to Razor, Nightly, and OKX wallets with a single, unified API.
         No more dealing with different wallet interfaces.
       </>
     ),

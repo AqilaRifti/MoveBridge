@@ -1,6 +1,6 @@
 {
     "name": "@movebridge/testing",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "description": "Testing utilities for MoveBridge SDK - mocks, validators, fakers, and test harness",
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",
@@ -35,7 +35,7 @@
         "typescript": "^5.3.2"
     },
     "peerDependencies": {
-        "@movebridge/core": ">=0.0.1"
+        "@movebridge/core": ">=0.1.0"
     },
     "keywords": [
         "movement",

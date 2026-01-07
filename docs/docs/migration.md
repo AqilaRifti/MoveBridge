@@ -76,7 +76,7 @@ const transaction = await aptos.transaction.build.simple({
     functionArguments: [recipient, amount],
   },
 });
-const signedTx = await petra.signTransaction(transaction);
+const signedTx = await razor.signTransaction(transaction);
 const result = await aptos.transaction.submit.simple({
   transaction,
   senderAuthenticator: signedTx,
@@ -121,7 +121,7 @@ const result = await contract.view('balance', [address], [
 **Before:**
 ```typescript
 try {
-  await petra.connect();
+  await razor.connect();
 } catch (error) {
   // Generic error handling
   console.log(error.message);
