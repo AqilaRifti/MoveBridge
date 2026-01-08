@@ -12,7 +12,7 @@ dist/
 .vscode/
 *.swp
 *.swo
-
+.next
 # OS
 .DS_Store
 Thumbs.db
