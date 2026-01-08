@@ -1,6 +1,6 @@
 {
-  "../node_modules/@aptos-labs/ts-sdk/dist/esm/chunk-TAEOFYOF.mjs -> @aptos-labs/script-composer-pack": {
-    "id": 2828,
+  "../../../node_modules/.pnpm/@aptos-labs+ts-sdk@1.39.0_axios@1.13.2_got@11.8.6/node_modules/@aptos-labs/ts-sdk/dist/esm/chunk-TAEOFYOF.mjs -> @aptos-labs/script-composer-pack": {
+    "id": 1,
     "files": []
   }
 }
