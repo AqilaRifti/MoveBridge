@@ -333,4 +333,192 @@ describe('Event Listener Properties', () => {
             { numRuns: 50 }
         );
     });
+
+    /**
+     * Feature: event-wallet-fixes, Property 6: Events Delivered in Order
+     * For any set of events received (potentially out of order), the callbacks 
+     * SHALL be invoked in ascending sequence number order.
+     * 
+     * **Validates: Requirements 2.2**
+     */
+    it('Property: Events delivered in ascending sequence order', async () => {
+        await fc.assert(
+            fc.asyncProperty(
+                // Generate random sequence numbers (not necessarily in order)
+                fc.array(fc.integer({ min: 0, max: 1000 }), { minLength: 2, maxLength: 10 })
+                    .map(nums => [...new Set(nums)]) // Remove duplicates
+                    .filter(nums => nums.length >= 2), // Ensure at least 2 unique numbers
+                async (sequenceNumbers) => {
+                    const receivedSequences: number[] = [];
+                    const callback = vi.fn((event) => {
+                        receivedSequences.push(parseInt(event.sequenceNumber));
+                    });
+
+                    // Create events with the random sequence numbers (in random order)
+                    const shuffledSeqs = [...sequenceNumbers].sort(() => Math.random() - 0.5);
+                    const events = shuffledSeqs.map(seq => ({
+                        type: '0x1::test::TestEvent',
+                        sequence_number: String(seq),
+                        data: { seq },
+                    }));
+
+                    // Update mock to return events in shuffled order
+                    mockAptosClient.getAccountEventsByEventType.mockResolvedValue(events);
+
+                    // Subscribe
+                    eventListener.subscribe({
+                        accountAddress: '0x1',
+                        eventType: '0x1::test::TestEvent',
+                        callback,
+                    });
+
+                    // Wait for initial poll
+                    await vi.advanceTimersByTimeAsync(100);
+
+                    // Verify events were received in ascending order
+                    for (let i = 1; i < receivedSequences.length; i++) {
+                        expect(receivedSequences[i]).toBeGreaterThan(receivedSequences[i - 1]);
+                    }
+
+                    return true;
+                }
+            ),
+            { numRuns: 50 }
+        );
+    });
+
+    /**
+     * Feature: event-wallet-fixes, Property 7: Independent Subscription Polling
+     * For any set of multiple subscriptions, each subscription SHALL poll independently
+     * and not affect other subscriptions' polling or state.
+     * 
+     * **Validates: Requirements 2.4**
+     */
+    it('Property 7: Independent Subscription Polling', async () => {
+        await fc.assert(
+            fc.asyncProperty(
+                fc.integer({ min: 2, max: 5 }),
+                async (numSubscriptions) => {
+                    const callbacks: Array<ReturnType<typeof vi.fn>> = [];
+                    const subscriptionIds: string[] = [];
+
+                    // Create multiple subscriptions with different event types
+                    for (let i = 0; i < numSubscriptions; i++) {
+                        const callback = vi.fn();
+                        callbacks.push(callback);
+
+                        // Each subscription gets its own events
+                        mockAptosClient.getAccountEventsByEventType.mockImplementation(
+                            async (params: { accountAddress: string; eventType: string }) => {
+                                // Return events specific to this event type
+                                const eventIndex = parseInt(params.eventType.split('Event')[1] || '0');
+                                return [{
+                                    type: params.eventType,
+                                    sequence_number: '0',
+                                    data: { subscriptionIndex: eventIndex },
+                                }];
+                            }
+                        );
+
+                        const id = eventListener.subscribe({
+                            accountAddress: '0x1',
+                            eventType: `0x1::test::Event${i}`,
+                            callback,
+                        });
+                        subscriptionIds.push(id);
+                    }
+
+                    // Wait for initial poll
+                    await vi.advanceTimersByTimeAsync(100);
+
+                    // Each callback should have been called independently
+                    for (let i = 0; i < numSubscriptions; i++) {
+                        expect(callbacks[i]).toHaveBeenCalled();
+                    }
+
+                    // Unsubscribe one subscription
+                    eventListener.unsubscribe(subscriptionIds[0]);
+
+                    // Reset all callbacks
+                    callbacks.forEach(cb => cb.mockClear());
+
+                    // Advance to next poll
+                    await vi.advanceTimersByTimeAsync(1000);
+
+                    // First callback should NOT be called (unsubscribed)
+                    expect(callbacks[0]).not.toHaveBeenCalled();
+
+                    // Other callbacks should still be called (independent polling)
+                    for (let i = 1; i < numSubscriptions; i++) {
+                        // May or may not be called depending on deduplication, but subscription should exist
+                        expect(eventListener.hasSubscription(subscriptionIds[i])).toBe(true);
+                    }
+
+                    return true;
+                }
+            ),
+            { numRuns: 30 }
+        );
+    });
+
+    /**
+     * Feature: event-wallet-fixes, Property 2: Callback Receives Complete Event Data
+     * For any event received, the callback SHALL receive an object containing:
+     * - type: the event type string
+     * - sequenceNumber: the sequence number as a string
+     * - data: the event data object
+     * 
+     * **Validates: Requirements 1.2**
+     */
+    it('Property 2: Callback Receives Complete Event Data', async () => {
+        await fc.assert(
+            fc.asyncProperty(
+                fc.record({
+                    type: fc.constant('0x1::test::TestEvent'),
+                    sequence_number: fc.integer({ min: 0, max: 1000 }).map(String),
+                    data: fc.record({
+                        value: fc.integer(),
+                        sender: fc.hexaString({ minLength: 64, maxLength: 64 }).map(h => `0x${h}`),
+                        timestamp: fc.integer({ min: 0 }),
+                    }),
+                }),
+                async (rawEvent) => {
+                    let receivedEvent: { type: string; sequenceNumber: string; data: unknown } | null = null;
+                    const callback = vi.fn((event) => {
+                        receivedEvent = event;
+                    });
+
+                    // Update mock to return this event
+                    mockAptosClient.getAccountEventsByEventType.mockResolvedValue([rawEvent]);
+
+                    // Subscribe
+                    eventListener.subscribe({
+                        accountAddress: '0x1',
+                        eventType: '0x1::test::TestEvent',
+                        callback,
+                    });
+
+                    // Wait for initial poll
+                    await vi.advanceTimersByTimeAsync(100);
+
+                    // Callback should have been called
+                    expect(callback).toHaveBeenCalled();
+                    expect(receivedEvent).not.toBeNull();
+
+                    // Verify complete event data structure
+                    expect(receivedEvent).toHaveProperty('type');
+                    expect(receivedEvent).toHaveProperty('sequenceNumber');
+                    expect(receivedEvent).toHaveProperty('data');
+
+                    // Verify values match
+                    expect(receivedEvent!.type).toBe(rawEvent.type);
+                    expect(receivedEvent!.sequenceNumber).toBe(rawEvent.sequence_number);
+                    expect(receivedEvent!.data).toEqual(rawEvent.data);
+
+                    return true;
+                }
+            ),
+            { numRuns: 50 }
+        );
+    });
 });

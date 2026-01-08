@@ -196,3 +196,133 @@ describe('Transaction Builder Properties', () => {
         );
     });
 });
+
+
+/**
+ * Feature: event-wallet-fixes, Property 12: Connection Verification Before Transactions
+ * For any transaction submission attempt, the TransactionBuilder SHALL verify that
+ * a wallet is connected before attempting the transaction.
+ * 
+ * **Validates: Requirements 6.3**
+ */
+it('Property 12: Connection Verification Before Transactions', async () => {
+    // Generate various transaction payloads
+    const functionArb = fc.tuple(
+        fc.hexaString({ minLength: 1, maxLength: 64 }).map((h) => `0x${h}`),
+        fc.string({ minLength: 1, maxLength: 20 }).filter((s) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(s)),
+        fc.string({ minLength: 1, maxLength: 20 }).filter((s) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(s))
+    ).map(([addr, mod, fn]) => `${addr}::${mod}::${fn}`);
+
+    await fc.assert(
+        fc.asyncProperty(functionArb, async (func) => {
+            // Create fresh instances for each test
+            const wm = new WalletManager();
+            const tb = new TransactionBuilder(mockAptosClient, wm);
+
+            const payload = await tb.build({
+                function: func,
+                typeArguments: [],
+                arguments: [],
+            });
+
+            // Without connecting, signAndSubmit should throw WALLET_NOT_CONNECTED
+            try {
+                await tb.signAndSubmit(payload);
+                // Should not reach here
+                return false;
+            } catch (error) {
+                // Verify it's the correct error type
+                expect(error).toHaveProperty('code', 'WALLET_NOT_CONNECTED');
+                return true;
+            }
+        }),
+        { numRuns: 100 }
+    );
+});
+
+/**
+ * Feature: event-wallet-fixes, Property 11: Connection State Preserved on Transaction Failure
+ * For any transaction that fails (due to network error, user rejection, etc.),
+ * the wallet connection state SHALL remain unchanged.
+ * 
+ * **Validates: Requirements 6.1**
+ */
+it('Property 11: Connection State Preserved on Transaction Failure', async () => {
+    // This test verifies that the WalletManager state is not modified by transaction failures
+    // Since we can't actually connect a wallet in tests, we verify the state management logic
+
+    await fc.assert(
+        fc.asyncProperty(
+            fc.hexaString({ minLength: 64, maxLength: 64 }).map((h) => `0x${h}`),
+            async (address) => {
+                const wm = new WalletManager();
+
+                // Initial state should be disconnected
+                const initialState = wm.getState();
+                expect(initialState.connected).toBe(false);
+                expect(initialState.address).toBeNull();
+
+                // Attempting a transaction should not change state
+                const tb = new TransactionBuilder(mockAptosClient, wm);
+                const payload = await tb.build({
+                    function: '0x1::test::func',
+                    typeArguments: [],
+                    arguments: [],
+                });
+
+                try {
+                    await tb.signAndSubmit(payload);
+                } catch {
+                    // Expected to fail
+                }
+
+                // State should still be disconnected (unchanged)
+                const afterState = wm.getState();
+                expect(afterState.connected).toBe(false);
+                expect(afterState.address).toBeNull();
+                expect(afterState).toEqual(initialState);
+
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
+});
+
+/**
+ * Feature: event-wallet-fixes, Property: Simulate also verifies connection
+ * For any simulation attempt, the TransactionBuilder SHALL verify that
+ * a wallet is connected before attempting the simulation.
+ * 
+ * **Validates: Requirements 6.3**
+ */
+it('Property: Simulate also verifies connection', async () => {
+    const functionArb = fc.tuple(
+        fc.hexaString({ minLength: 1, maxLength: 64 }).map((h) => `0x${h}`),
+        fc.string({ minLength: 1, maxLength: 20 }).filter((s) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(s)),
+        fc.string({ minLength: 1, maxLength: 20 }).filter((s) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(s))
+    ).map(([addr, mod, fn]) => `${addr}::${mod}::${fn}`);
+
+    await fc.assert(
+        fc.asyncProperty(functionArb, async (func) => {
+            const wm = new WalletManager();
+            const tb = new TransactionBuilder(mockAptosClient, wm);
+
+            const payload = await tb.build({
+                function: func,
+                typeArguments: [],
+                arguments: [],
+            });
+
+            // Without connecting, simulate should throw WALLET_NOT_CONNECTED
+            try {
+                await tb.simulate(payload);
+                return false;
+            } catch (error) {
+                expect(error).toHaveProperty('code', 'WALLET_NOT_CONNECTED');
+                return true;
+            }
+        }),
+        { numRuns: 100 }
+    );
+});

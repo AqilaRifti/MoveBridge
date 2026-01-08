@@ -17,7 +17,7 @@ export const NETWORK_CONFIG: Record<NetworkType, NetworkConfig> = {
     testnet: {
         chainId: 250,
         rpcUrl: 'https://testnet.movementnetwork.xyz/v1',
-        indexerUrl: null,
+        indexerUrl: 'https://hasura.testnet.movementnetwork.xyz/v1/graphql',
         explorerUrl: 'https://explorer.movementnetwork.xyz/?network=bardock+testnet',
         faucetUrl: 'https://faucet.testnet.movementnetwork.xyz/',
     },

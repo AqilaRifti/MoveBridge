@@ -50,26 +50,80 @@ const STORAGE_KEY = 'movebridge:lastWallet';
 
 /**
  * Normalizes any hash format to a 0x-prefixed hex string
- * Handles: string, Uint8Array, objects with toString()
+ * Handles: string, Uint8Array, objects with toString(), nested hash objects
+ * Supports various wallet response formats including OKX, Nightly, and Razor
  */
 function normalizeHash(data: unknown): string {
-    if (typeof data === 'string') {
-        // Already a string - ensure 0x prefix
-        return data.startsWith('0x') ? data : `0x${data}`;
+    // Handle null/undefined
+    if (data === null || data === undefined) {
+        throw new Error('Invalid hash: received null or undefined');
     }
+
+    // Handle string format
+    if (typeof data === 'string') {
+        const trimmed = data.trim();
+        if (!trimmed) {
+            throw new Error('Invalid hash: received empty string');
+        }
+        // Ensure 0x prefix
+        return trimmed.startsWith('0x') ? trimmed : `0x${trimmed}`;
+    }
+
+    // Handle Uint8Array format
     if (data instanceof Uint8Array) {
+        if (data.length === 0) {
+            throw new Error('Invalid hash: received empty Uint8Array');
+        }
         return '0x' + Array.from(data).map(b => b.toString(16).padStart(2, '0')).join('');
     }
-    // Handle objects with hash property
-    if (data && typeof data === 'object' && 'hash' in data) {
-        return normalizeHash((data as { hash: unknown }).hash);
+
+    // Handle ArrayBuffer
+    if (data instanceof ArrayBuffer) {
+        const arr = new Uint8Array(data);
+        if (arr.length === 0) {
+            throw new Error('Invalid hash: received empty ArrayBuffer');
+        }
+        return '0x' + Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
     }
-    // Handle objects with toString
-    if (data && typeof (data as { toString?: () => string }).toString === 'function') {
-        const str = (data as { toString: () => string }).toString();
-        return str.startsWith('0x') ? str : `0x${str}`;
+
+    // Handle objects
+    if (data && typeof data === 'object') {
+        // Check for hash property (common in wallet responses)
+        if ('hash' in data) {
+            return normalizeHash((data as { hash: unknown }).hash);
+        }
+
+        // Check for txnHash property (some wallets use this)
+        if ('txnHash' in data) {
+            return normalizeHash((data as { txnHash: unknown }).txnHash);
+        }
+
+        // Check for transactionHash property
+        if ('transactionHash' in data) {
+            return normalizeHash((data as { transactionHash: unknown }).transactionHash);
+        }
+
+        // Check for output property (OKX specific)
+        if ('output' in data) {
+            return normalizeHash((data as { output: unknown }).output);
+        }
+
+        // Handle objects with toString method (like AccountAddress)
+        if (typeof (data as { toString?: () => string }).toString === 'function') {
+            const str = (data as { toString: () => string }).toString();
+            // Avoid [object Object]
+            if (str !== '[object Object]') {
+                return str.startsWith('0x') ? str : `0x${str}`;
+            }
+        }
     }
-    return String(data);
+
+    // Last resort: convert to string
+    const strValue = String(data);
+    if (strValue === '[object Object]' || !strValue) {
+        throw new Error('Invalid hash: could not extract hash from response');
+    }
+    return strValue.startsWith('0x') ? strValue : `0x${strValue}`;
 }
 
 /**
@@ -89,25 +143,58 @@ function toHexString(data: unknown): string {
 /**
  * Extracts result from AIP-62 UserResponse format
  * Handles both direct results and { status, args } format
+ * Supports various wallet response formats including OKX, Nightly, and Razor
  */
 function extractUserResponse<T>(response: unknown): T {
     if (!response) {
         throw new Error('Empty response from wallet');
     }
 
-    const resp = response as { status?: string; args?: T };
+    // Handle primitive types directly
+    if (typeof response === 'string' || typeof response === 'number') {
+        return response as T;
+    }
 
-    // Check for rejection
-    if (resp.status === 'rejected') {
+    // Handle Uint8Array directly
+    if (response instanceof Uint8Array) {
+        return response as T;
+    }
+
+    const resp = response as Record<string, unknown>;
+
+    // Check for rejection status
+    if (resp.status === 'rejected' || resp.status === 'Rejected') {
         throw new Error('User rejected the request');
     }
 
-    // Extract from UserResponse format if present
-    if (resp.args !== undefined) {
-        return resp.args;
+    // Check for error status
+    if (resp.status === 'error' || resp.error) {
+        const errorMsg = resp.error || resp.message || 'Transaction failed';
+        throw new Error(String(errorMsg));
     }
 
-    // Direct result
+    // Extract from UserResponse format if present (AIP-62 standard)
+    if (resp.args !== undefined) {
+        return resp.args as T;
+    }
+
+    // Handle OKX-specific response format
+    // OKX may return { status: 'approved', output: { hash: '...' } }
+    if (resp.status === 'approved' && resp.output !== undefined) {
+        return resp.output as T;
+    }
+
+    // Handle response with result property
+    if (resp.result !== undefined) {
+        return resp.result as T;
+    }
+
+    // Handle response with data property
+    if (resp.data !== undefined) {
+        return resp.data as T;
+    }
+
+    // Direct result - return as-is
     return response as T;
 }
 
@@ -164,18 +251,97 @@ function createStandardAdapter(wallet: {
                 throw new Error('Wallet does not support signAndSubmitTransaction');
             }
 
-            const response = await signTxFeature.signAndSubmitTransaction(payload);
-            const result = extractUserResponse<{ hash?: unknown } | unknown>(response);
+            // Determine wallet name for format selection
+            const walletName = wallet.name.toLowerCase();
+            const isOKX = walletName.includes('okx');
 
-            // Handle various response formats
-            let hash: string;
-            if (result && typeof result === 'object' && 'hash' in result) {
-                hash = normalizeHash((result as { hash: unknown }).hash);
+            // OKX wallet may need legacy format, others use AIP-62 format
+            // Try to send in the format the wallet expects
+            let txPayload: unknown;
+
+            if (isOKX) {
+                // OKX may expect legacy entry_function_payload format
+                // Try both formats - first the legacy format for OKX
+                txPayload = {
+                    type: 'entry_function_payload',
+                    function: payload.payload.function,
+                    type_arguments: payload.payload.typeArguments,
+                    arguments: payload.payload.functionArguments,
+                };
             } else {
-                hash = normalizeHash(result);
+                // Standard AIP-62 format for other wallets
+                txPayload = payload;
             }
 
-            return { hash };
+            let response: unknown;
+            try {
+                response = await signTxFeature.signAndSubmitTransaction(txPayload);
+            } catch (firstError) {
+                // If OKX format failed, try AIP-62 format
+                // If AIP-62 format failed, try legacy format
+                if (isOKX) {
+                    // OKX legacy format failed, try AIP-62
+                    try {
+                        response = await signTxFeature.signAndSubmitTransaction(payload);
+                    } catch {
+                        // Both formats failed, throw original error
+                        throw firstError;
+                    }
+                } else {
+                    // AIP-62 format failed for non-OKX wallet, try legacy format
+                    try {
+                        const legacyPayload = {
+                            type: 'entry_function_payload',
+                            function: payload.payload.function,
+                            type_arguments: payload.payload.typeArguments,
+                            arguments: payload.payload.functionArguments,
+                        };
+                        response = await signTxFeature.signAndSubmitTransaction(legacyPayload);
+                    } catch {
+                        // Both formats failed, throw original error
+                        throw firstError;
+                    }
+                }
+            }
+
+            // First extract from UserResponse wrapper if present
+            const result = extractUserResponse<unknown>(response);
+
+            // Now normalize the hash from various possible formats
+            try {
+                // If result is already a string (direct hash)
+                if (typeof result === 'string') {
+                    return { hash: normalizeHash(result) };
+                }
+
+                // If result is an object, try to extract hash
+                if (result && typeof result === 'object') {
+                    // Try common hash property names
+                    const hashObj = result as Record<string, unknown>;
+
+                    if (hashObj.hash !== undefined) {
+                        return { hash: normalizeHash(hashObj.hash) };
+                    }
+                    if (hashObj.txnHash !== undefined) {
+                        return { hash: normalizeHash(hashObj.txnHash) };
+                    }
+                    if (hashObj.transactionHash !== undefined) {
+                        return { hash: normalizeHash(hashObj.transactionHash) };
+                    }
+
+                    // OKX may return the hash directly in the result
+                    // Try to normalize the entire result
+                    return { hash: normalizeHash(result) };
+                }
+
+                // Fallback: try to normalize whatever we got
+                return { hash: normalizeHash(result) };
+            } catch (error) {
+                // Provide more context in the error
+                throw new Error(
+                    `Failed to extract transaction hash from wallet response: ${error instanceof Error ? error.message : 'Unknown error'}`
+                );
+            }
         },
 
         async signTransaction(payload: AIP62TransactionPayload) {

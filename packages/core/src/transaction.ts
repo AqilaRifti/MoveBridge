@@ -70,12 +70,16 @@ export class TransactionBuilder {
      * @returns Transaction hash
      * @throws MovementError with code WALLET_NOT_CONNECTED if no wallet connected
      * @throws MovementError with code TRANSACTION_FAILED if submission fails
+     * 
+     * Note: Transaction failures do NOT affect wallet connection state.
+     * The wallet remains connected even if a transaction fails.
      */
     async signAndSubmit(payload: TransactionPayload): Promise<string> {
+        // Verify connection before attempting transaction (Requirement 6.3)
         const adapter = this.walletManager.getAdapter();
-        const state = this.walletManager.getState();
+        const stateBefore = this.walletManager.getState();
 
-        if (!adapter || !state.connected) {
+        if (!adapter || !stateBefore.connected) {
             throw Errors.walletNotConnected();
         }
 
@@ -91,7 +95,25 @@ export class TransactionBuilder {
 
             return result.hash;
         } catch (error) {
-            throw wrapError(error, 'TRANSACTION_FAILED', 'Failed to sign and submit transaction');
+            // Transaction failure should NOT change connection state (Requirement 6.1)
+            // If the wallet disconnected during the transaction, that's a separate event
+            // handled by the wallet's onAccountChange listener, not by us
+
+            // Check if this is a user rejection (not a technical failure)
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const isUserRejection = errorMessage.toLowerCase().includes('rejected') ||
+                errorMessage.toLowerCase().includes('cancelled') ||
+                errorMessage.toLowerCase().includes('canceled') ||
+                errorMessage.toLowerCase().includes('denied');
+
+            // Wrap the error with appropriate context
+            throw wrapError(
+                error,
+                'TRANSACTION_FAILED',
+                isUserRejection
+                    ? 'Transaction was rejected by user'
+                    : 'Failed to sign and submit transaction'
+            );
         }
     }
 

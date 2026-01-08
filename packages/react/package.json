@@ -1,6 +1,6 @@
 {
     "name": "@movebridge/react",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "React hooks and components for Movement Network",
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",

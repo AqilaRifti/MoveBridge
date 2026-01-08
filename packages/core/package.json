@@ -1,6 +1,6 @@
 {
     "name": "@movebridge/core",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "Core SDK for Movement Network - wallet management, transactions, and contract interactions",
     "main": "./dist/index.js",
     "module": "./dist/index.mjs",

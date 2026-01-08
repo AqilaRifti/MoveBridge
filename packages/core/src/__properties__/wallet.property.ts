@@ -13,20 +13,60 @@ import type { WalletType } from '../types';
 
 // Re-implement normalizeHash for testing (mirrors wallet.ts implementation)
 function normalizeHash(data: unknown): string {
-    if (typeof data === 'string') {
-        return data.startsWith('0x') ? data : `0x${data}`;
+    // Handle null/undefined
+    if (data === null || data === undefined) {
+        throw new Error('Invalid hash: received null or undefined');
     }
+
+    // Handle string format
+    if (typeof data === 'string') {
+        const trimmed = data.trim();
+        if (!trimmed) {
+            throw new Error('Invalid hash: received empty string');
+        }
+        return trimmed.startsWith('0x') ? trimmed : `0x${trimmed}`;
+    }
+
+    // Handle Uint8Array format
     if (data instanceof Uint8Array) {
+        if (data.length === 0) {
+            throw new Error('Invalid hash: received empty Uint8Array');
+        }
         return '0x' + Array.from(data).map(b => b.toString(16).padStart(2, '0')).join('');
     }
-    if (data && typeof data === 'object' && 'hash' in data) {
-        return normalizeHash((data as { hash: unknown }).hash);
+
+    // Handle objects
+    if (data && typeof data === 'object') {
+        // Check for hash property
+        if ('hash' in data) {
+            return normalizeHash((data as { hash: unknown }).hash);
+        }
+        // Check for txnHash property
+        if ('txnHash' in data) {
+            return normalizeHash((data as { txnHash: unknown }).txnHash);
+        }
+        // Check for transactionHash property
+        if ('transactionHash' in data) {
+            return normalizeHash((data as { transactionHash: unknown }).transactionHash);
+        }
+        // Check for output property (OKX specific)
+        if ('output' in data) {
+            return normalizeHash((data as { output: unknown }).output);
+        }
+        // Handle objects with toString method
+        if (typeof (data as { toString?: () => string }).toString === 'function') {
+            const str = (data as { toString: () => string }).toString();
+            if (str !== '[object Object]') {
+                return str.startsWith('0x') ? str : `0x${str}`;
+            }
+        }
     }
-    if (data && typeof (data as { toString?: () => string }).toString === 'function') {
-        const str = (data as { toString: () => string }).toString();
-        return str.startsWith('0x') ? str : `0x${str}`;
+
+    const strValue = String(data);
+    if (strValue === '[object Object]' || !strValue) {
+        throw new Error('Invalid hash: could not extract hash from response');
     }
-    return String(data);
+    return strValue.startsWith('0x') ? strValue : `0x${strValue}`;
 }
 
 // Re-implement extractUserResponse for testing (mirrors wallet.ts implementation)
@@ -34,13 +74,51 @@ function extractUserResponse<T>(response: unknown): T {
     if (!response) {
         throw new Error('Empty response from wallet');
     }
-    const resp = response as { status?: string; args?: T };
-    if (resp.status === 'rejected') {
+
+    // Handle primitive types directly
+    if (typeof response === 'string' || typeof response === 'number') {
+        return response as T;
+    }
+
+    // Handle Uint8Array directly
+    if (response instanceof Uint8Array) {
+        return response as T;
+    }
+
+    const resp = response as Record<string, unknown>;
+
+    // Check for rejection status
+    if (resp.status === 'rejected' || resp.status === 'Rejected') {
         throw new Error('User rejected the request');
     }
-    if (resp.args !== undefined) {
-        return resp.args;
+
+    // Check for error status
+    if (resp.status === 'error' || resp.error) {
+        const errorMsg = resp.error || resp.message || 'Transaction failed';
+        throw new Error(String(errorMsg));
     }
+
+    // Extract from UserResponse format if present (AIP-62 standard)
+    if (resp.args !== undefined) {
+        return resp.args as T;
+    }
+
+    // Handle OKX-specific response format
+    if (resp.status === 'approved' && resp.output !== undefined) {
+        return resp.output as T;
+    }
+
+    // Handle response with result property
+    if (resp.result !== undefined) {
+        return resp.result as T;
+    }
+
+    // Handle response with data property
+    if (resp.data !== undefined) {
+        return resp.data as T;
+    }
+
+    // Direct result
     return response as T;
 }
 
@@ -487,5 +565,125 @@ it('Property 12: Transaction Hash Normalization', () => {
             }
         ),
         { numRuns: 100 }
+    );
+});
+
+/**
+ * Feature: event-wallet-fixes, Property 8: Transaction Response Normalization
+ * For any transaction response from any supported wallet (Razor, Nightly, OKX) in any format
+ * (direct hash, UserResponse wrapper, Uint8Array, nested object), the normalizeHash function
+ * SHALL return a valid 0x-prefixed hex string.
+ * 
+ * **Validates: Requirements 3.2, 3.4, 4.1, 4.2, 4.3**
+ */
+it('Property 8: OKX and multi-wallet response format handling', () => {
+    // Test OKX-specific format: { status: 'approved', output: { hash: '...' } }
+    fc.assert(
+        fc.property(
+            fc.hexaString({ minLength: 64, maxLength: 64 }).map(h => `0x${h}`),
+            (hash) => {
+                const okxResponse = { status: 'approved', output: { hash } };
+                const extracted = extractUserResponse<{ hash: string }>(okxResponse);
+                expect(extracted.hash).toBe(hash);
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
+
+    // Test txnHash property (alternative hash property name)
+    fc.assert(
+        fc.property(
+            fc.hexaString({ minLength: 64, maxLength: 64 }).map(h => `0x${h}`),
+            (hash) => {
+                const obj = { txnHash: hash };
+                const normalized = normalizeHash(obj);
+                expect(normalized).toBe(hash);
+                expect(normalized.startsWith('0x')).toBe(true);
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
+
+    // Test transactionHash property (another alternative)
+    fc.assert(
+        fc.property(
+            fc.hexaString({ minLength: 64, maxLength: 64 }).map(h => `0x${h}`),
+            (hash) => {
+                const obj = { transactionHash: hash };
+                const normalized = normalizeHash(obj);
+                expect(normalized).toBe(hash);
+                expect(normalized.startsWith('0x')).toBe(true);
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
+
+    // Test output property (OKX specific)
+    fc.assert(
+        fc.property(
+            fc.hexaString({ minLength: 64, maxLength: 64 }).map(h => `0x${h}`),
+            (hash) => {
+                const obj = { output: hash };
+                const normalized = normalizeHash(obj);
+                expect(normalized).toBe(hash);
+                expect(normalized.startsWith('0x')).toBe(true);
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
+
+    // Test result property extraction
+    fc.assert(
+        fc.property(
+            fc.hexaString({ minLength: 64, maxLength: 64 }).map(h => `0x${h}`),
+            (hash) => {
+                const response = { result: { hash } };
+                const extracted = extractUserResponse<{ hash: string }>(response);
+                expect(extracted.hash).toBe(hash);
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
+
+    // Test data property extraction
+    fc.assert(
+        fc.property(
+            fc.hexaString({ minLength: 64, maxLength: 64 }).map(h => `0x${h}`),
+            (hash) => {
+                const response = { data: { hash } };
+                const extracted = extractUserResponse<{ hash: string }>(response);
+                expect(extracted.hash).toBe(hash);
+                return true;
+            }
+        ),
+        { numRuns: 100 }
+    );
+
+    // Test error status handling
+    fc.assert(
+        fc.property(
+            fc.string({ minLength: 1, maxLength: 100 }),
+            (errorMsg) => {
+                const errorResponse = { status: 'error', error: errorMsg };
+                expect(() => extractUserResponse(errorResponse)).toThrow(errorMsg);
+                return true;
+            }
+        ),
+        { numRuns: 50 }
+    );
+
+    // Test case-insensitive rejection
+    fc.assert(
+        fc.property(fc.constant(null), () => {
+            const rejectedResponse = { status: 'Rejected' };
+            expect(() => extractUserResponse(rejectedResponse)).toThrow('User rejected the request');
+            return true;
+        }),
+        { numRuns: 10 }
     );
 });
