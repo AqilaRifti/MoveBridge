@@ -1,468 +1,273 @@
 # MoveBridge SDK - Architecture
 
-Technical architecture overview of the MoveBridge SDK monorepo.
+## Overview
 
-## Package Structure
-
-```
-movebridge/
-├── packages/
-│   ├── core/          # Foundation - wallet, transactions, contracts
-│   ├── react/         # React bindings - hooks, components, context
-│   ├── codegen/       # CLI tool - TypeScript generation from ABI
-│   └── testing/       # Test utilities - mocks, fakers, validators
-├── examples/
-│   └── demo/          # Next.js demo application
-└── demo/
-    └── index.html     # Standalone HTML demo
-```
-
-## Package Dependencies
+MoveBridge is a monorepo containing four packages that work together to provide a complete Movement Network development experience.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Application Layer                     │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │
-│  │  Next.js    │  │   Vite      │  │  Vanilla TS     │  │
-│  │  Demo App   │  │   App       │  │  Application    │  │
-│  └──────┬──────┘  └──────┬──────┘  └────────┬────────┘  │
-└─────────┼────────────────┼──────────────────┼───────────┘
-          │                │                  │
-          ▼                ▼                  ▼
-┌─────────────────────────────────────────────────────────┐
-│                    SDK Layer                             │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │              @movebridge/react                   │    │
-│  │  • MovementProvider (context)                   │    │
-│  │  • useMovement, useBalance, useContract         │    │
-│  │  • WalletButton, AddressDisplay                 │    │
-│  └──────────────────────┬──────────────────────────┘    │
-│                         │                                │
-│                         ▼                                │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │              @movebridge/core                    │    │
-│  │  • Movement client                              │    │
-│  │  • WalletManager                                │    │
-│  │  • TransactionBuilder                           │    │
-│  │  • ContractInterface                            │    │
-│  │  • EventListener                                │    │
-│  └─────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────┘
-          │                                    │
-          ▼                                    ▼
-┌─────────────────────┐          ┌─────────────────────────┐
-│  @movebridge/codegen│          │  @movebridge/testing    │
-│  • ABIParser        │          │  • createTestHarness    │
-│  • TypeGenerator    │          │  • createMockClient     │
-│  • CLI tool         │          │  • createFaker          │
-└─────────────────────┘          │  • validators           │
-                                 └─────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      Application Layer                       │
+│                    (Your dApp / Demo App)                   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        ▼                     ▼                     ▼
+┌───────────────┐    ┌───────────────┐    ┌───────────────┐
+│  @movebridge  │    │  @movebridge  │    │  @movebridge  │
+│    /react     │    │   /codegen    │    │   /testing    │
+│               │    │               │    │               │
+│  React Hooks  │    │  CLI Tool     │    │  Test Utils   │
+│  Components   │    │  Type Gen     │    │  Mocks        │
+└───────┬───────┘    └───────┬───────┘    └───────┬───────┘
+        │                    │                    │
+        └─────────────────────┼─────────────────────┘
+                              ▼
+                    ┌───────────────────┐
+                    │   @movebridge     │
+                    │      /core        │
+                    │                   │
+                    │  Movement Client  │
+                    │  Wallet Manager   │
+                    │  Transaction Bld  │
+                    │  Contract Iface   │
+                    │  Event Listener   │
+                    └─────────┬─────────┘
+                              │
+                              ▼
+                    ┌───────────────────┐
+                    │  @aptos-labs/     │
+                    │    ts-sdk         │
+                    └─────────┬─────────┘
+                              │
+                              ▼
+                    ┌───────────────────┐
+                    │  Movement Network │
+                    │  (RPC / Indexer)  │
+                    └───────────────────┘
 ```
 
----
+## Package Details
 
-## Core Package (`@movebridge/core`)
+### @movebridge/core
 
-The foundation layer providing all blockchain interactions.
-
-### Components
+The foundation layer. All other packages depend on this.
 
 ```
-core/src/
-├── client.ts        # Movement - main entry point
-├── config.ts        # Network configuration, utilities
-├── errors.ts        # Structured error handling
-├── wallet.ts        # WalletManager - multi-wallet support
-├── transaction.ts   # TransactionBuilder - tx construction
-├── contract.ts      # ContractInterface - view/entry calls
-├── events.ts        # EventListener - subscriptions
-└── types.ts         # TypeScript definitions
+packages/core/src/
+├── index.ts          # Public exports
+├── client.ts         # Movement - main entry point
+├── config.ts         # Network configuration
+├── errors.ts         # Structured error handling
+├── wallet.ts         # WalletManager - multi-wallet support
+├── transaction.ts    # TransactionBuilder
+├── contract.ts       # ContractInterface
+├── events.ts         # EventListener - subscriptions
+└── types.ts          # TypeScript definitions
 ```
 
-### Movement Client
+**Key Classes:**
 
-Central orchestrator that composes all subsystems:
+| Class | Responsibility |
+|-------|----------------|
+| `Movement` | Main client, orchestrates all modules |
+| `WalletManager` | Detects, connects, manages wallet state |
+| `TransactionBuilder` | Builds, simulates, signs, submits transactions |
+| `ContractInterface` | View/entry function calls on contracts |
+| `EventListener` | Subscribe to on-chain events |
 
+**Design Patterns:**
+- Facade pattern: `Movement` class provides simple API over complex subsystems
+- Event emitter: Wallet state changes broadcast via EventEmitter3
+- Builder pattern: Transaction construction with fluent API
+
+### @movebridge/react
+
+React bindings built on top of core.
+
+```
+packages/react/src/
+├── index.ts          # Public exports
+├── context.tsx       # MovementProvider + Context
+├── hooks.ts          # useMovement, useBalance, useContract, etc.
+└── components.tsx    # WalletButton, WalletModal, AddressDisplay
+```
+
+**Hooks:**
+
+| Hook | Purpose |
+|------|---------|
+| `useMovement()` | Wallet connection state + actions |
+| `useBalance(address?)` | Fetch and cache balance |
+| `useContract(options)` | Contract read/write operations |
+| `useTransaction()` | Send transactions with status tracking |
+| `useWaitForTransaction(hash)` | Poll for transaction confirmation |
+
+**Components:**
+
+| Component | Purpose |
+|-----------|---------|
+| `WalletButton` | Connect/disconnect button |
+| `WalletModal` | Wallet selection dialog |
+| `AddressDisplay` | Truncated address with copy |
+| `NetworkSwitcher` | Network selection dropdown |
+
+### @movebridge/codegen
+
+CLI tool for generating TypeScript from deployed Move modules.
+
+```
+packages/codegen/src/
+├── index.ts          # Public exports
+├── cli.ts            # Commander CLI entry point
+├── parser.ts         # ABIParser - parse module ABI
+└── generator.ts      # TypeGenerator - emit TypeScript
+```
+
+**Flow:**
+1. Fetch module ABI from chain via RPC
+2. Parse function signatures, type parameters, arguments
+3. Generate TypeScript class with typed methods
+4. Output to specified file
+
+**Generated Code Structure:**
 ```typescript
-class Movement {
-  wallet: WalletManager;      // Wallet connections
-  tx: TransactionBuilder;     // Transaction building
-  contract: ContractInterface; // Contract calls
-  events: EventListener;      // Event subscriptions
+export class CoinContract {
+  constructor(movement: Movement) { ... }
   
-  // Direct methods
-  getAccountBalance(address: string): Promise<string>;
-  getAccountResources(address: string): Promise<Resource[]>;
-  submitTransaction(payload: TransactionPayload): Promise<string>;
+  // View functions
+  async balance(owner: string, typeArgs: [string]): Promise<string> { ... }
+  
+  // Entry functions  
+  async transfer(to: string, amount: string, typeArgs: [string]): Promise<string> { ... }
 }
 ```
 
-### Data Flow: Transaction
+### @movebridge/testing
+
+Testing utilities for applications using MoveBridge.
 
 ```
-User Action
-    │
-    ▼
-┌─────────────────┐
-│ TransactionBuilder │
-│ • build()         │
-│ • transfer()      │
-└────────┬──────────┘
-         │
-         ▼
-┌─────────────────┐
-│ WalletManager   │
-│ • signAndSubmit()│
-└────────┬──────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Movement Client │
-│ • RPC call      │
-└────────┬──────────┘
-         │
-         ▼
-   Movement Network
+packages/testing/src/
+├── index.ts          # Public exports
+├── harness.ts        # createTestHarness - all-in-one setup
+├── mock-client.ts    # MockMovementClient
+├── faker.ts          # Fake data generation
+├── simulator.ts      # Network condition simulation
+├── tracker.ts        # Call tracking and assertions
+├── snapshots.ts      # State snapshot utilities
+├── integration.ts    # Integration test helpers
+└── validators/
+    ├── address.ts    # Address validation
+    ├── transaction.ts # Transaction payload validation
+    └── schema.ts     # JSON schema validation
 ```
 
-### Error Handling
+**Test Harness:**
+```typescript
+const harness = createTestHarness({ seed: 12345 });
 
-Structured errors with codes for programmatic handling:
+// Mock responses
+harness.client.mockResponse('getAccountBalance', '1000000');
+
+// Track calls
+harness.tracker.assertCalled('getAccountBalance');
+
+// Simulate conditions
+harness.simulator.simulateLatency(100);
+harness.simulator.simulateNetworkError();
+
+// Generate fake data
+const address = harness.faker.fakeAddress();
+```
+
+## Data Flow
+
+### Wallet Connection
+```
+User clicks "Connect"
+        │
+        ▼
+useMovement().connect('razor')
+        │
+        ▼
+WalletManager.connect()
+        │
+        ├── Detect wallet extension
+        ├── Request connection
+        ├── Get account info
+        └── Emit 'connect' event
+        │
+        ▼
+Context updates → Components re-render
+```
+
+### Transaction Submission
+```
+User initiates transfer
+        │
+        ▼
+useTransaction().send(payload)
+        │
+        ▼
+TransactionBuilder.build()
+        │
+        ├── Construct payload
+        ├── Simulate (optional)
+        └── Return raw transaction
+        │
+        ▼
+TransactionBuilder.signAndSubmit()
+        │
+        ├── Wallet signs
+        └── Submit to RPC
+        │
+        ▼
+useWaitForTransaction(hash)
+        │
+        ├── Poll RPC
+        └── Return result
+```
+
+## Error Handling
+
+All errors are wrapped in `MovementError`:
 
 ```typescript
-enum ErrorCode {
-  WALLET_NOT_FOUND = 'WALLET_NOT_FOUND',
-  WALLET_NOT_CONNECTED = 'WALLET_NOT_CONNECTED',
-  TRANSACTION_FAILED = 'TRANSACTION_FAILED',
-  NETWORK_ERROR = 'NETWORK_ERROR',
-  INVALID_ADDRESS = 'INVALID_ADDRESS',
-  // ...
-}
-
 class MovementError extends Error {
   code: ErrorCode;
+  message: string;
   details?: Record<string, unknown>;
 }
 ```
 
----
+Error codes:
+- `INVALID_ADDRESS`
+- `WALLET_NOT_FOUND`
+- `WALLET_CONNECTION_FAILED`
+- `TRANSACTION_FAILED`
+- `VIEW_FUNCTION_FAILED`
+- `NETWORK_ERROR`
 
-## React Package (`@movebridge/react`)
+## Build System
 
-React bindings built on top of core.
+- **Bundler:** tsup (esbuild-based)
+- **Output:** ESM + CJS + TypeScript declarations
+- **Monorepo:** pnpm workspaces
+- **Testing:** Vitest with property-based testing (fast-check)
 
-### Components
-
-```
-react/src/
-├── context.tsx      # MovementProvider, context
-├── hooks/
-│   ├── useMovement.ts         # Wallet state & actions
-│   ├── useBalance.ts          # Balance fetching
-│   ├── useContract.ts         # Contract interactions
-│   ├── useTransaction.ts      # Transaction submission
-│   └── useWaitForTransaction.ts # Tx confirmation
-└── components/
-    ├── WalletButton.tsx       # Connect/disconnect button
-    ├── WalletModal.tsx        # Wallet selection modal
-    ├── AddressDisplay.tsx     # Formatted address
-    └── NetworkSwitcher.tsx    # Network toggle
-```
-
-### Context Architecture
-
-```
-┌─────────────────────────────────────────────────────┐
-│                 MovementProvider                     │
-│  ┌───────────────────────────────────────────────┐  │
-│  │              MovementContext                   │  │
-│  │  • movement: Movement instance                │  │
-│  │  • connected: boolean                         │  │
-│  │  • address: string | null                     │  │
-│  │  • network: NetworkType                       │  │
-│  │  • connect/disconnect functions               │  │
-│  └───────────────────────────────────────────────┘  │
-│                         │                            │
-│    ┌────────────────────┼────────────────────┐      │
-│    │                    │                    │      │
-│    ▼                    ▼                    ▼      │
-│ useMovement()     useBalance()        useContract() │
-│                                                      │
-└─────────────────────────────────────────────────────┘
-```
-
-### Hook Data Flow
+## Network Configuration
 
 ```typescript
-// useBalance hook flow
-function useBalance() {
-  const { movement, address } = useMovementContext();
-  const [balance, setBalance] = useState<string | null>(null);
-  
-  useEffect(() => {
-    if (!address) return;
-    
-    let cancelled = false;
-    movement.getAccountBalance(address)
-      .then(b => !cancelled && setBalance(b));
-    
-    return () => { cancelled = true; };
-  }, [movement, address]);
-  
-  return { balance, loading, refetch };
-}
-```
-
----
-
-## Codegen Package (`@movebridge/codegen`)
-
-CLI tool for generating TypeScript from Move ABIs.
-
-### Components
-
-```
-codegen/src/
-├── parser.ts        # ABIParser - parse Move module ABI
-├── generator.ts     # TypeGenerator - emit TypeScript
-└── index.ts         # Exports
-```
-
-### Generation Flow
-
-```
-Move Contract (on-chain)
-         │
-         ▼
-┌─────────────────┐
-│   Fetch ABI     │  GET /accounts/{addr}/module/{name}
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   ABIParser     │  Parse functions, types, generics
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  TypeGenerator  │  Emit TypeScript class
-└────────┬────────┘
-         │
-         ▼
-   Generated .ts file
-```
-
-### Generated Output Structure
-
-```typescript
-// Generated: coin.ts
-import type { Movement } from '@movebridge/core';
-
-export class CoinContract {
-  constructor(private movement: Movement) {}
-  
-  // View functions
-  async balance<CoinType>(owner: string): Promise<string> {
-    return this.movement.contract.view({
-      function: '0x1::coin::balance',
-      typeArguments: [CoinType],
-      arguments: [owner],
-    });
-  }
-  
-  // Entry functions
-  async transfer<CoinType>(to: string, amount: string): Promise<string> {
-    return this.movement.contract.call({
-      function: '0x1::coin::transfer',
-      typeArguments: [CoinType],
-      arguments: [to, amount],
-    });
-  }
-}
-```
-
----
-
-## Testing Package (`@movebridge/testing`)
-
-Comprehensive testing utilities.
-
-### Components
-
-```
-testing/src/
-├── harness.ts       # createTestHarness - unified test setup
-├── mock-client.ts   # createMockClient - mock Movement client
-├── faker.ts         # createFaker - deterministic fake data
-├── tracker.ts       # createCallTracker - call assertions
-├── simulator.ts     # createNetworkSimulator - network conditions
-├── snapshots.ts     # createSnapshotUtils - snapshot testing
-├── integration.ts   # createIntegrationUtils - live testing
-└── validators/
-    ├── address.ts   # Address validation
-    ├── transaction.ts # Transaction validation
-    └── schema.ts    # JSON schema validation
-```
-
-### Test Harness Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    createTestHarness()                   │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │                   TestHarness                    │    │
-│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐   │    │
-│  │  │MockClient │  │  Faker    │  │ Tracker   │   │    │
-│  │  │• mock()   │  │• address()│  │• record() │   │    │
-│  │  │• reset()  │  │• balance()│  │• assert() │   │    │
-│  │  └───────────┘  └───────────┘  └───────────┘   │    │
-│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐   │    │
-│  │  │Simulator  │  │ Snapshot  │  │Validators │   │    │
-│  │  │• latency()│  │• take()   │  │• address()│   │    │
-│  │  │• timeout()│  │• compare()│  │• tx()     │   │    │
-│  │  └───────────┘  └───────────┘  └───────────┘   │    │
-│  └─────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Mock Client Flow
-
-```typescript
-// Setup
-const harness = createTestHarness({ seed: 12345 });
-
-// Configure mock
-harness.client.mockResponse('getAccountBalance', '1000000000');
-
-// Execute code under test
-const balance = await harness.client.getAccountBalance('0x1');
-
-// Assert
-harness.tracker.assertCalled('getAccountBalance');
-harness.tracker.assertCalledWith('getAccountBalance', ['0x1']);
-
-// Cleanup
-harness.cleanup();
-```
-
-### Network Simulation
-
-```typescript
-const simulator = createNetworkSimulator();
-
-// Simulate conditions
-simulator.setLatency(100);           // 100ms delay
-simulator.enableTimeout(5000);       // 5s timeout
-simulator.enableNetworkError();      // Connection failures
-simulator.enableRateLimit(10);       // 10 calls then 429
-
-// Apply to mock client
-harness.client.setSimulator(simulator);
-```
-
----
-
-## Extension Points
-
-### Custom Wallet Adapter
-
-```typescript
-// Implement WalletAdapter interface
-interface WalletAdapter {
-  name: string;
-  connect(): Promise<{ address: string }>;
-  disconnect(): Promise<void>;
-  signTransaction(tx: TransactionPayload): Promise<SignedTransaction>;
-  signAndSubmitTransaction(tx: TransactionPayload): Promise<string>;
-}
-
-// Register with WalletManager
-movement.wallet.registerAdapter(new MyWalletAdapter());
-```
-
-### Custom Network
-
-```typescript
-const movement = new Movement({
-  network: 'custom',
-  rpcUrl: 'https://my-node.example.com/v1',
-  indexerUrl: 'https://my-indexer.example.com/v1',
-  chainId: 999,
-});
-```
-
-### Custom Validators
-
-```typescript
-import { registerSchema } from '@movebridge/testing';
-
-registerSchema('myCustomType', {
-  type: 'object',
-  properties: {
-    id: { type: 'string' },
-    value: { type: 'number' },
+const NETWORK_CONFIG = {
+  mainnet: {
+    chainId: 126,
+    rpcUrl: 'https://full.mainnet.movementinfra.xyz/v1',
+    indexerUrl: 'https://indexer.mainnet.movementinfra.xyz/v1',
   },
-  required: ['id', 'value'],
-});
+  testnet: {
+    chainId: 250,
+    rpcUrl: 'https://testnet.movementnetwork.xyz/v1',
+    indexerUrl: 'https://indexer.testnet.movementnetwork.xyz/v1',
+  },
+};
 ```
-
----
-
-## Build & Development
-
-### Monorepo Structure
-
-```
-pnpm-workspace.yaml    # Workspace definition
-├── packages/*         # Internal packages
-└── examples/*         # Demo applications
-```
-
-### Build Order
-
-```
-1. @movebridge/core     # No internal deps
-2. @movebridge/react    # Depends on core
-3. @movebridge/codegen  # Depends on core
-4. @movebridge/testing  # Depends on core
-5. examples/demo        # Depends on core, react
-```
-
-### Commands
-
-```bash
-# Install all dependencies
-pnpm install
-
-# Build all packages
-pnpm build
-
-# Run all tests
-pnpm test
-
-# Build specific package
-pnpm --filter @movebridge/core build
-
-# Run demo
-pnpm --filter movebridge-demo dev
-```
-
----
-
-## Design Principles
-
-1. **Composition over inheritance** - Small, focused modules that compose together
-2. **Type safety first** - Full TypeScript with strict mode
-3. **Framework agnostic core** - React bindings are separate from core
-4. **Testability** - Every component designed for easy mocking
-5. **Progressive disclosure** - Simple defaults, advanced options available
-6. **Error transparency** - Structured errors with actionable codes
-
----
-
-## Security Considerations
-
-- **No private key handling** - Wallet extensions manage keys
-- **Mainnet protection** - Testing utils prevent accidental mainnet calls
-- **Input validation** - All addresses and payloads validated
-- **Type safety** - Compile-time checks prevent many runtime errors

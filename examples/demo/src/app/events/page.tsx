@@ -116,8 +116,8 @@ export default function EventsPage() {
                                             onClick={() => !isSubscribed && setEventType(type.value)}
                                             disabled={isSubscribed}
                                             className={`w-full text-left p-3 rounded-lg border transition-colors ${eventType === type.value
-                                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                                                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                                                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
                                                 } ${isSubscribed ? 'opacity-60 cursor-not-allowed' : ''}`}
                                         >
                                             <div className="font-medium text-sm">{type.label}</div>
@@ -271,6 +271,7 @@ function EventCard({ event }: { event: EventLog }) {
                     <span className="text-xs text-slate-400">#{event.sequenceNumber}</span>
                 </div>
                 <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500">{event.timestamp.toLocaleTimeString()}</span>
                     <span className="text-slate-400">{expanded ? '▼' : '▶'}</span>
                 </div>
             </div>

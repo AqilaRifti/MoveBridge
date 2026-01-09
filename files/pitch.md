@@ -2,171 +2,77 @@
 
 ## The Problem
 
-Building on Movement Network today is harder than it needs to be.
+Building dApps on Movement Network today is painful:
 
-**Developers face:**
-- 🔧 **Wallet fragmentation** - Each wallet (Razor, Nightly, OKX) has different APIs
-- 📝 **Boilerplate overload** - Repetitive code for connections, transactions, error handling
-- 🔍 **Type safety gaps** - Move contracts lack TypeScript bindings
-- ⏱️ **Slow iteration** - No testing utilities means slow feedback loops
-- 🧩 **React friction** - No hooks or components for common patterns
+1. **Fragmented wallet support** - Each wallet (Razor, Nightly, OKX) has different APIs. Developers write boilerplate code for each one.
 
-**The result:** Developers spend weeks on infrastructure instead of building features.
+2. **No type safety** - Raw Aptos SDK calls return `any` types. Bugs slip through to production.
 
----
+3. **Steep learning curve** - Movement uses Move language with unique concepts (resources, abilities, generics). No abstraction layer exists.
 
-## The Solution
+4. **Testing is hard** - No mocking utilities. Developers test against live testnets, making CI/CD slow and flaky.
 
-**MoveBridge SDK** - The complete developer toolkit for Movement Network.
+5. **React integration is DIY** - Every team builds their own hooks and context providers from scratch.
 
-> "ethers.js for Movement"
+## The Solution: MoveBridge SDK
 
-One SDK that handles everything:
+MoveBridge is **ethers.js for Movement Network** - a complete TypeScript SDK that makes Movement development feel familiar and productive.
 
+### What We Built
+
+| Package | Purpose |
+|---------|---------|
+| `@movebridge/core` | Unified wallet connection, transactions, contract calls |
+| `@movebridge/react` | React hooks + pre-built components |
+| `@movebridge/codegen` | Generate TypeScript from deployed contracts |
+| `@movebridge/testing` | Mocks, fakers, validators for testing |
+
+### Key Differentiators
+
+**1. Unified Wallet API**
 ```typescript
-// Before: 50+ lines of wallet connection code
-// After:
-const { connect, address, balance } = useMovement();
-await connect('razor');
+// One API for all wallets
+await movement.wallet.connect('razor');  // or 'nightly', 'okx'
 ```
 
----
-
-## Key Features
-
-### 1. Unified Wallet Management
-Connect to any wallet with one API. Auto-reconnect, event handling, and state management included.
-
-```typescript
-movement.wallet.connect('razor');  // or 'nightly', 'okx'
-movement.wallet.on('accountChanged', handleChange);
-```
-
-### 2. Type-Safe Contracts
-Generate TypeScript bindings from deployed contracts. Full autocomplete and compile-time safety.
-
+**2. Type-Safe Contracts**
 ```bash
 npx movebridge-gen --address 0x1::coin --output ./types/coin.ts
 ```
-
 ```typescript
-const coin = new CoinContract(movement);
-const balance = await coin.balance(address); // Fully typed!
+// Auto-generated, fully typed
+const balance = await coin.balance(address, ['0x1::aptos_coin::AptosCoin']);
 ```
 
-### 3. React-First Design
-Hooks and components that just work. Built for modern React patterns.
-
+**3. React-First Design**
 ```tsx
-<MovementProvider network="testnet">
-  <WalletButton />
-  <BalanceDisplay />
-</MovementProvider>
+const { address, connect, disconnect } = useMovement();
+const { balance, loading } = useBalance();
 ```
 
-### 4. Testing Utilities
-Mock clients, fake data generators, and validators. Ship with confidence.
-
+**4. Testing That Works**
 ```typescript
-const harness = createTestHarness({ seed: 12345 });
-harness.client.mockResponse('getAccountBalance', '1000000000');
-harness.tracker.assertCalled('getAccountBalance');
+const harness = createTestHarness();
+harness.client.mockResponse('getAccountBalance', '1000000');
+// Test without hitting the network
 ```
 
----
+## Market Opportunity
 
-## Why MoveBridge?
+- Movement Network is growing rapidly
+- No comprehensive SDK exists today
+- Ethereum developers expect ethers.js-level tooling
+- First-mover advantage in developer tooling
 
-| Feature | Raw Aptos SDK | MoveBridge |
-|---------|---------------|------------|
-| Wallet connection | Manual per wallet | One-line unified |
-| React integration | DIY | Built-in hooks |
-| Type generation | None | CLI tool |
-| Testing | None | Full suite |
-| Error handling | Generic | Structured codes |
-| Components | None | Pre-built UI |
+## Traction
 
----
+- 4 production-ready packages
+- Full documentation site
+- Demo application showcasing all features
+- Published to npm as `@movebridge/*`
 
-## Target Users
+## Ask
 
-1. **DeFi Developers** - Building DEXs, lending protocols, yield aggregators
-2. **NFT Platforms** - Marketplaces, minting sites, galleries
-3. **Gaming Studios** - On-chain games, asset management
-4. **Enterprise** - Supply chain, identity, tokenization
+We're building the developer infrastructure layer for Movement Network. MoveBridge SDK reduces dApp development time from weeks to days.
 
----
-
-## Traction & Validation
-
-- ✅ 4 packages, 500+ tests passing
-- ✅ Full TypeScript coverage
-- ✅ Property-based testing for correctness
-- ✅ Interactive demo application
-- ✅ Comprehensive documentation
-
----
-
-## Roadmap
-
-**Phase 1 (Complete)**
-- Core SDK with wallet management
-- React hooks and components
-- Code generation CLI
-- Testing utilities
-
-**Phase 2 (Next)**
-- Vue.js integration
-- Svelte integration
-- More wallet support
-- Transaction batching
-
-**Phase 3 (Future)**
-- GraphQL subscriptions
-- Analytics dashboard
-- SDK marketplace
-- Enterprise features
-
----
-
-## The Ask
-
-We're looking for:
-- 🏆 **Hackathon recognition** - Validate the approach
-- 👥 **Early adopters** - Developers to try the SDK
-- 💬 **Feedback** - What features matter most?
-- 🤝 **Partnerships** - Wallet teams, protocol teams
-
----
-
-## Team
-
-Built by developers, for developers. We've felt the pain of building on new chains and created the tools we wished existed.
-
----
-
-## Try It Now
-
-```bash
-npm install @movebridge/core @movebridge/react
-```
-
-```typescript
-import { Movement } from '@movebridge/core';
-const movement = new Movement({ network: 'testnet' });
-```
-
-**Links:**
-- GitHub: [github.com/movebridge](https://github.com/movebridge)
-- Demo: Open `demo/index.html`
-- Docs: See README.md
-
----
-
-## One More Thing
-
-MoveBridge isn't just a library - it's a commitment to developer experience on Movement Network.
-
-**Our promise:** If it's painful to build, we'll make it painless.
-
-Let's build the future of Movement together. 🚀
+**MoveBridge: Build on Movement, ship with confidence.**
